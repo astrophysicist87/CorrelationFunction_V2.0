@@ -539,7 +539,7 @@ void CorrelationFunction::Set_dN_dypTdpTdphi_moments(FO_surf* FOsurf_ptr, int lo
 	// get weighted spectra with only most important fluid cells, up to given threshhold
 	*global_out_stream_ptr << "Computing weighted spectra..." << endl;
 	//Cal_dN_dypTdpTdphi_with_weights(FOsurf_ptr, local_pid);
-	Cal_dN_dypTdpTdphi_with_weights_NEW(FOsurf_ptr, local_pid, 0.99999);
+	Cal_dN_dypTdpTdphi_with_weights_NEW(FOsurf_ptr, local_pid, 1.0 - 1.e-10);
 
 	return;
 }

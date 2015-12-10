@@ -63,7 +63,9 @@ void CorrelationFunction::Do_resonance_integrals(int parent_resonance_particle_i
 
 	Allocate_resonance_running_sum_vectors();
 
-	Flatten_dN_dypTdpTdphi_moments(parent_resonance_particle_id);
+	res_sign_info = sign_of_dN_dypTdpTdphi_moments[parent_resonance_particle_id];
+	res_log_info = ln_dN_dypTdpTdphi_moments[parent_resonance_particle_id];
+	res_moments_info = dN_dypTdpTdphi_moments[parent_resonance_particle_id];
 
 	n_body = current_reso_nbody;
 
@@ -99,40 +101,50 @@ void CorrelationFunction::Do_resonance_integrals(int parent_resonance_particle_i
 							PKphi = VEC_n2_PPhi_tildeFLIP[iv][izeta];		//also takes Pp --> Pm
 						Edndp3(PKT, PKphi, Csum_vec);
 					}												// end of tempidx sum
-					for (int qpt_cs_idx = 0; qpt_cs_idx < qspace_cs_slice_length; ++qpt_cs_idx)
-						zetasum_vec[qpt_cs_idx] += VEC_n2_zeta_factor[iv][izeta]*Csum_vec[qpt_cs_idx];
+					for (int iqt = 0; iqt < qnpts; ++iqt)
+					for (int iqx = 0; iqx < qnpts; ++iqx)
+					for (int iqy = 0; iqy < qnpts; ++iqy)
+					for (int iqz = 0; iqz < qnpts; ++iqz)
+					for (int itrig = 0; itrig < 2; ++itrig)
+						zetasum_vec[iqt][iqx][iqy][iqz][itrig] += VEC_n2_zeta_factor[iv][izeta]*Csum_vec[iqt][iqx][iqy][iqz][itrig];
 				}													// end of zeta sum
-				for (int qpt_cs_idx = 0; qpt_cs_idx < qspace_cs_slice_length; ++qpt_cs_idx)
-					vsum_vec[qpt_cs_idx] += VEC_n2_v_factor[iv]*zetasum_vec[qpt_cs_idx];
+				for (int iqt = 0; iqt < qnpts; ++iqt)
+				for (int iqx = 0; iqx < qnpts; ++iqx)
+				for (int iqy = 0; iqy < qnpts; ++iqy)
+				for (int iqz = 0; iqz < qnpts; ++iqz)
+				for (int itrig = 0; itrig < 2; ++itrig)
+					vsum_vec[iqt][iqx][iqy][iqz][itrig] += VEC_n2_v_factor[iv]*zetasum_vec[iqt][iqx][iqy][iqz][itrig];
 			}														// end of v sum
-			for (int qpt_cs_idx = 0; qpt_cs_idx < qspace_cs_slice_length; ++qpt_cs_idx)
-				ssum_vec[qpt_cs_idx] += Mres*VEC_n2_s_factor*vsum_vec[qpt_cs_idx];
+			for (int iqt = 0; iqt < qnpts; ++iqt)
+			for (int iqx = 0; iqx < qnpts; ++iqx)
+			for (int iqy = 0; iqy < qnpts; ++iqy)
+			for (int iqz = 0; iqz < qnpts; ++iqz)
+			for (int itrig = 0; itrig < 2; ++itrig)
+				ssum_vec[iqt][iqx][iqy][iqz][itrig] += Mres*VEC_n2_s_factor*vsum_vec[iqt][iqx][iqy][iqz][itrig];
 
 			//update all gridpoints for all daughter moments
-			int qpt_cs_idx = 0;
 			for (int iqt = 0; iqt < qnpts; ++iqt)
 			for (int iqx = 0; iqx < qnpts; ++iqx)
 			for (int iqy = 0; iqy < qnpts; ++iqy)
 			for (int iqz = 0; iqz < qnpts; ++iqz)
 			for (int itrig = 0; itrig < 2; ++itrig)
 			{
-				dN_dypTdpTdphi_moments[daughter_particle_id][ipt][ipphi][iqt][iqx][iqy][iqz][itrig] += ssum_vec[qpt_cs_idx] / fraction_of_resonances;
-				double temp = dN_dypTdpTdphi_moments[daughter_particle_id][ipt][ipphi][iqt][iqx][iqy][iqz][itrig];
-				ln_dN_dypTdpTdphi_moments[daughter_particle_id][ipt][ipphi][iqt][iqx][iqy][iqz][itrig] = log(abs(temp)+1.e-100);
-				sign_of_dN_dypTdpTdphi_moments[daughter_particle_id][ipt][ipphi][iqt][iqx][iqy][iqz][itrig] = sgn(temp);
-				++qpt_cs_idx;
+				dN_dypTdpTdphi_moments[daughter_particle_id][iqt][iqx][iqy][iqz][itrig][ipt][ipphi] += ssum_vec[iqt][iqx][iqy][iqz][itrig] / fraction_of_resonances;
+				double temp = dN_dypTdpTdphi_moments[daughter_particle_id][iqt][iqx][iqy][iqz][itrig][ipt][ipphi];
+				ln_dN_dypTdpTdphi_moments[daughter_particle_id][iqt][iqx][iqy][iqz][itrig][ipt][ipphi] = log(abs(temp)+1.e-100);
+				sign_of_dN_dypTdpTdphi_moments[daughter_particle_id][iqt][iqx][iqy][iqz][itrig][ipt][ipphi] = sgn(temp);
 			}
 	
-			if (isnan(dN_dypTdpTdphi_moments[daughter_particle_id][ipt][ipphi][0][0][0][0][0]
-					+ dN_dypTdpTdphi_moments[daughter_particle_id][ipt][ipphi][0][0][0][0][1]))
+			if (isnan(dN_dypTdpTdphi_moments[daughter_particle_id][0][0][0][0][0][ipt][ipphi]
+					+ dN_dypTdpTdphi_moments[daughter_particle_id][0][0][0][0][1][ipt][ipphi]))
 			{
 				*global_out_stream_ptr << "ERROR: NaNs encountered!" << endl
-										<< "dN_dypTdpTdphi_moments[daughter_particle_id][" << ipt << "][" << ipphi << "][0][0][0][0][0] = "
+										<< "dN_dypTdpTdphi_moments[daughter_particle_id][0][0][0][0][0][" << ipt << "][" << ipphi << "] = "
 										<< setw(8) << setprecision(15)
-										<< dN_dypTdpTdphi_moments[daughter_particle_id][ipt][ipphi][0][0][0][0][0] << endl
-										<< "dN_dypTdpTdphi_moments[daughter_particle_id][" << ipt << "][" << ipphi << "][0][0][0][0][1] = "
+										<< dN_dypTdpTdphi_moments[daughter_particle_id][0][0][0][0][0][ipt][ipphi] << endl
+										<< "dN_dypTdpTdphi_moments[daughter_particle_id][0][0][0][0][1][" << ipt << "][" << ipphi << "] = "
 										<< setw(8) << setprecision(15)
-										<< dN_dypTdpTdphi_moments[daughter_particle_id][ipt][ipphi][0][0][0][0][1] << endl
+										<< dN_dypTdpTdphi_moments[daughter_particle_id][0][0][0][0][1][ipt][ipphi] << endl
 										<< "  --> pt = " << local_pT << std::endl
 										<< "  --> pphi = " << local_pphi << std::endl
 										<< "daughter_particle_id = " << daughter_particle_id << endl
@@ -182,40 +194,50 @@ void CorrelationFunction::Do_resonance_integrals(int parent_resonance_particle_i
 								PKphi = VEC_PPhi_tildeFLIP[is][iv][izeta];		//also takes Pp --> Pm
 							Edndp3(PKT, PKphi, Csum_vec);
 						}										// end of tempidx sum
-						for (int qpt_cs_idx = 0; qpt_cs_idx < qspace_cs_slice_length; ++qpt_cs_idx)
-							zetasum_vec[qpt_cs_idx] += VEC_zeta_factor[is][iv][izeta]*Csum_vec[qpt_cs_idx];
+						for (int iqt = 0; iqt < qnpts; ++iqt)
+						for (int iqx = 0; iqx < qnpts; ++iqx)
+						for (int iqy = 0; iqy < qnpts; ++iqy)
+						for (int iqz = 0; iqz < qnpts; ++iqz)
+                        for (int itrig = 0; itrig < 2; ++itrig)
+							zetasum_vec[iqt][iqx][iqy][iqz][itrig] += VEC_zeta_factor[is][iv][izeta]*Csum_vec[iqt][iqx][iqy][iqz][itrig];
 					}											// end of zeta sum
-					for (int qpt_cs_idx = 0; qpt_cs_idx < qspace_cs_slice_length; ++qpt_cs_idx)
-					    vsum_vec[qpt_cs_idx] += VEC_v_factor[is][iv]*zetasum_vec[qpt_cs_idx];
+					for (int iqt = 0; iqt < qnpts; ++iqt)
+					for (int iqx = 0; iqx < qnpts; ++iqx)
+					for (int iqy = 0; iqy < qnpts; ++iqy)
+					for (int iqz = 0; iqz < qnpts; ++iqz)
+                    for (int itrig = 0; itrig < 2; ++itrig)
+					    vsum_vec[iqt][iqx][iqy][iqz][itrig] += VEC_v_factor[is][iv]*zetasum_vec[iqt][iqx][iqy][iqz][itrig];
 				}												// end of v sum
-				for (int qpt_cs_idx = 0; qpt_cs_idx < qspace_cs_slice_length; ++qpt_cs_idx)
-					ssum_vec[qpt_cs_idx] += Mres*VEC_s_factor[is]*vsum_vec[qpt_cs_idx];
+				for (int iqt = 0; iqt < qnpts; ++iqt)
+				for (int iqx = 0; iqx < qnpts; ++iqx)
+				for (int iqy = 0; iqy < qnpts; ++iqy)
+				for (int iqz = 0; iqz < qnpts; ++iqz)
+				for (int itrig = 0; itrig < 2; ++itrig)
+					ssum_vec[iqt][iqx][iqy][iqz][itrig] += Mres*VEC_s_factor[is]*vsum_vec[iqt][iqx][iqy][iqz][itrig];
 			}													// end of s sum
 			//update all gridpoints for daughter moments
-			int qpt_cs_idx = 0;
 			for (int iqt = 0; iqt < qnpts; ++iqt)
 			for (int iqx = 0; iqx < qnpts; ++iqx)
 			for (int iqy = 0; iqy < qnpts; ++iqy)
 			for (int iqz = 0; iqz < qnpts; ++iqz)
 			for (int itrig = 0; itrig < 2; ++itrig)
 			{
-				dN_dypTdpTdphi_moments[daughter_particle_id][ipt][ipphi][iqt][iqx][iqy][iqz][itrig] += ssum_vec[qpt_cs_idx] / fraction_of_resonances;
-				double temp = dN_dypTdpTdphi_moments[daughter_particle_id][ipt][ipphi][iqt][iqx][iqy][iqz][itrig];
-				ln_dN_dypTdpTdphi_moments[daughter_particle_id][ipt][ipphi][iqt][iqx][iqy][iqz][itrig] = log(abs(temp)+1.e-100);
-				sign_of_dN_dypTdpTdphi_moments[daughter_particle_id][ipt][ipphi][iqt][iqx][iqy][iqz][itrig] = sgn(temp);
-				++qpt_cs_idx;
+				dN_dypTdpTdphi_moments[daughter_particle_id][iqt][iqx][iqy][iqz][itrig][ipt][ipphi] += ssum_vec[iqt][iqx][iqy][iqz][itrig] / fraction_of_resonances;
+				double temp = dN_dypTdpTdphi_moments[daughter_particle_id][iqt][iqx][iqy][iqz][itrig][ipt][ipphi];
+				ln_dN_dypTdpTdphi_moments[daughter_particle_id][iqt][iqx][iqy][iqz][itrig][ipt][ipphi] = log(abs(temp)+1.e-100);
+				sign_of_dN_dypTdpTdphi_moments[daughter_particle_id][iqt][iqx][iqy][iqz][itrig][ipt][ipphi] = sgn(temp);
 			}
 	
-			if (isnan(dN_dypTdpTdphi_moments[daughter_particle_id][ipt][ipphi][0][0][0][0][0]
-					+ dN_dypTdpTdphi_moments[daughter_particle_id][ipt][ipphi][0][0][0][0][1]))
+			if (isnan(dN_dypTdpTdphi_moments[daughter_particle_id][0][0][0][0][0][ipt][ipphi]
+					+ dN_dypTdpTdphi_moments[daughter_particle_id][0][0][0][0][1][ipt][ipphi]))
 			{
 				*global_out_stream_ptr << "ERROR: NaNs encountered!" << endl
-										<< "dN_dypTdpTdphi_moments[daughter_particle_id][" << ipt << "][" << ipphi << "][0][0][0][0][0] = "
+										<< "dN_dypTdpTdphi_moments[daughter_particle_id][0][0][0][0][0][" << ipt << "][" << ipphi << "] = "
 										<< setw(8) << setprecision(15)
-										<< dN_dypTdpTdphi_moments[daughter_particle_id][ipt][ipphi][0][0][0][0][0] << endl
-										<< "dN_dypTdpTdphi_moments[daughter_particle_id][" << ipt << "][" << ipphi << "][0][0][0][0][1] = "
+										<< dN_dypTdpTdphi_moments[daughter_particle_id][0][0][0][0][0][ipt][ipphi] << endl
+										<< "dN_dypTdpTdphi_moments[daughter_particle_id][0][0][0][0][1][" << ipt << "][" << ipphi << "] = "
 										<< setw(8) << setprecision(15)
-										<< dN_dypTdpTdphi_moments[daughter_particle_id][ipt][ipphi][0][0][0][0][1] << endl
+										<< dN_dypTdpTdphi_moments[daughter_particle_id][0][0][0][0][1][ipt][ipphi] << endl
 										<< "  --> pt = " << local_pT << std::endl
 										<< "  --> pphi = " << local_pphi << std::endl
 										<< "daughter_particle_id = " << daughter_particle_id << endl
@@ -234,7 +256,9 @@ void CorrelationFunction::Do_resonance_integrals(int parent_resonance_particle_i
 		}								// end of pT, pphi loops
 	}										// end of nbody == 3
 
-	// clean up
+
+
+	//clean up
 	Delete_resonance_running_sum_vectors();
 
 	return;
@@ -243,29 +267,6 @@ void CorrelationFunction::Do_resonance_integrals(int parent_resonance_particle_i
 inline void CorrelationFunction::set_to_zero(double * array, size_t arraylength)
 {
 	for (size_t arrayidx=0; arrayidx<arraylength; ++arrayidx) array[arrayidx] = 0.0;
-}
-
-void CorrelationFunction::Flatten_dN_dypTdpTdphi_moments(int parent_resonance_particle_id)
-{
-	for (int ipt = 0; ipt < n_interp_pT_pts; ++ipt)
-	for (int ipphi = 0; ipphi < n_interp_pphi_pts; ++ipphi)
-	{
-		// set index for looping
-		int qpt_cs_idx = 0;
-		
-		// flatten arrays, since these are quicker to process
-		for (int iqt = 0; iqt < qnpts; ++iqt)
-		for (int iqx = 0; iqx < qnpts; ++iqx)
-		for (int iqy = 0; iqy < qnpts; ++iqy)
-		for (int iqz = 0; iqz < qnpts; ++iqz)
-		for (int itrig = 0; itrig < 2; ++itrig)
-		{
-			res_sign_info[ipt][ipphi][qpt_cs_idx] = sign_of_dN_dypTdpTdphi_moments[parent_resonance_particle_id][ipt][ipphi][iqt][iqx][iqy][iqz][itrig];
-			res_log_info[ipt][ipphi][qpt_cs_idx] = ln_dN_dypTdpTdphi_moments[parent_resonance_particle_id][ipt][ipphi][iqt][iqx][iqy][iqz][itrig];
-			res_moments_info[ipt][ipphi][qpt_cs_idx] = dN_dypTdpTdphi_moments[parent_resonance_particle_id][ipt][ipphi][iqt][iqx][iqy][iqz][itrig];
-			++qpt_cs_idx;
-		}
-	}
 }
 
 //End of file

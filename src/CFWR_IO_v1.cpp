@@ -193,10 +193,8 @@ for(int iKT = 0; iKT < n_localp_T; iKT++)
 	return;
 }
 
-// **************************************************
-// THIS FUNCTION NEEDS TO BE CHECKED AND DEBUGGED!!!
-// **************************************************
-/*void CorrelationFunction::Output_all_dN_dypTdpTdphi(int folderindex)
+
+void CorrelationFunction::Output_all_dN_dypTdpTdphi(int folderindex)
 {
 	ostringstream filename_stream_all_dN_dypTdpTdphi;
 	filename_stream_all_dN_dypTdpTdphi << global_path << "/all_res_dN_dypTdpTdphi_ev" << folderindex << no_df_stem << ".dat";
@@ -205,13 +203,13 @@ for(int iKT = 0; iKT < n_localp_T; iKT++)
 	for(int ipphi = 0; ipphi < n_interp_pphi_pts; ipphi++)
 	{
 		for(int ipt = 0; ipt < n_interp_pT_pts; ipt++)
-			output_all_dN_dypTdpTdphi << scientific << setprecision(8) << setw(12) << dN_dypTdpTdphi_moments[ii][ipt][ipphi][0][0][0][0][0] << "   ";
+			output_all_dN_dypTdpTdphi << scientific << setprecision(8) << setw(12) << dN_dypTdpTdphi_moments[ii][0][0][0][0][0][ipt][ipphi] << "   ";
 		output_all_dN_dypTdpTdphi << endl;
 	}
 	output_all_dN_dypTdpTdphi.close();
 
 	return;
-}*/
+}
 
 void CorrelationFunction::Output_total_target_dN_dypTdpTdphi(int folderindex)
 {
@@ -248,18 +246,14 @@ void CorrelationFunction::Output_total_target_eiqx_dN_dypTdpTdphi(int folderinde
 	for (int ipt = 0; ipt < n_interp_pT_pts; ++ipt)
 	for (int ipphi = 0; ipphi < n_interp_pphi_pts; ++ipphi)
 	{
-		// addresses NaN issue in sin component when all q^{\mu} == 0
-		if (sqrt(qt_pts[iqt]*qt_pts[iqt]+qx_pts[iqx]*qx_pts[iqx]+qy_pts[iqy]*qy_pts[iqy]+qz_pts[iqz]*qz_pts[iqz]) < 1.e-12)
-			dN_dypTdpTdphi_moments[target_particle_id][ipt][ipphi][iqt][iqx][iqy][iqz][1] = 0.0;
-
-		// output all FT'd spectra
-		double nonFTd_spectra = spectra[target_particle_id][ipt][ipphi];
-		double cos_transf_spectra = dN_dypTdpTdphi_moments[target_particle_id][ipt][ipphi][iqt][iqx][iqy][iqz][0];
-		double sin_transf_spectra = dN_dypTdpTdphi_moments[target_particle_id][ipt][ipphi][iqt][iqx][iqy][iqz][1];
-		output_target_dN_dypTdpTdphi << scientific << setprecision(8) << setw(12)
-			<< qt_pts[iqt] << "   " << qx_pts[iqx] << "   " << qy_pts[iqy] << "   " << qz_pts[iqz] << "   "
-			<< SPinterp_pT[ipt] << "   " << SPinterp_pphi[ipphi] << "   " << cos_transf_spectra << "   " << sin_transf_spectra << "   "
-			<< 1. + (cos_transf_spectra*cos_transf_spectra + sin_transf_spectra*sin_transf_spectra)/(nonFTd_spectra*nonFTd_spectra) <<  endl;
+			if (sqrt(qt_pts[iqt]*qt_pts[iqt]+qx_pts[iqx]*qx_pts[iqx]+qy_pts[iqy]*qy_pts[iqy]+qz_pts[iqz]*qz_pts[iqz]) < 1.e-12)
+				dN_dypTdpTdphi_moments[target_particle_id][iqt][iqx][iqy][iqz][1][ipt][ipphi] = 0.0;
+			output_target_dN_dypTdpTdphi << scientific << setprecision(8) << setw(12)
+				<< qt_pts[iqt] << "   " << qx_pts[iqx] << "   " << qy_pts[iqy] << "   " << qz_pts[iqz] << "   "
+				<< SPinterp_pT[ipt] << "   " << SPinterp_pphi[ipphi] << "   " 
+				<< dN_dypTdpTdphi_moments[target_particle_id][iqt][iqx][iqy][iqz][0][ipt][ipphi] << "   "
+				<< dN_dypTdpTdphi_moments[target_particle_id][iqt][iqx][iqy][iqz][1][ipt][ipphi] << endl;
+		//output_target_dN_dypTdpTdphi << endl;
 	}
 
 	output_target_dN_dypTdpTdphi.close();
@@ -281,5 +275,69 @@ void CorrelationFunction::Output_chosen_resonances()
 
 	return;
 }
+
+/*void CorrelationFunction::Read_in_all_dN_dypTdpTdphi(int folderindex)
+{
+	for(int wfi = 0; wfi < n_weighting_functions; wfi++)
+	{
+		ostringstream filename_stream_all_dN_dypTdpTdphi;
+		filename_stream_all_dN_dypTdpTdphi << global_path << "/all_res_dN_dypTdpTdphi_mom_"
+								<< setfill('0') << setw(2) << wfi << "_ev" << folderindex << no_df_stem << ".dat";
+		ifstream input_all_dN_dypTdpTdphi(filename_stream_all_dN_dypTdpTdphi.str().c_str());
+	
+		int local_filelength = get_filelength(filename_stream_all_dN_dypTdpTdphi.str().c_str());
+		int local_filewidth = get_filewidth(filename_stream_all_dN_dypTdpTdphi.str().c_str());
+		if (VERBOSE > 0) *global_out_stream_ptr << "Read_in_all_dN_dypTdpTdphi(): nrows = "
+							<< local_filelength << " and ncols = " << local_filewidth << endl;
+		if ((Nparticle * n_interp_pphi_pts != local_filelength) || (n_interp_pT_pts != local_filewidth))
+		{
+			cerr << "Read_in_all_dN_dypTdpTdphi(): Mismatch in dimensions in file "
+				<< "all_res_dN_dypTdpTdphi_mom_" << setfill('0') << setw(2) << wfi
+				<< "_ev" << folderindex << no_df_stem << ".dat!" << endl;
+			exit(1);
+		}
+	
+		for(int ii = 0; ii < Nparticle; ii++)
+		for(int iphi = 0; iphi < n_interp_pphi_pts; iphi++)
+		for(int ipt = 0; ipt < n_interp_pT_pts; ipt++)
+		{
+			input_all_dN_dypTdpTdphi >> dN_dypTdpTdphi_moments[ii][wfi][ipt][iphi];
+			if (abs(dN_dypTdpTdphi_moments[ii][wfi][ipt][iphi]) > 1.e-100)
+			{
+				ln_dN_dypTdpTdphi_moments[ii][wfi][ipt][iphi] = log(abs(dN_dypTdpTdphi_moments[ii][wfi][ipt][iphi]));
+				sign_of_dN_dypTdpTdphi_moments[ii][wfi][ipt][iphi] = sgn(dN_dypTdpTdphi_moments[ii][wfi][ipt][iphi]);
+			}
+			//cout << "Read in (pT, pphi, EdNdp3 ST moms) = " << SPinterp_pT[ipt] << "   " << SPinterp_pphi[iphi] << "   "
+			//	<< scientific << setprecision(8) << setw(12) << dN_dypTdpTdphi_moments[ii][wfi][ipt][iphi] << endl;
+		}
+	
+		input_all_dN_dypTdpTdphi.close();
+		if (VERBOSE > 0) *global_out_stream_ptr << "Successfully read in " << filename_stream_all_dN_dypTdpTdphi.str().c_str() << endl;
+	}
+
+
+	ostringstream filename_stream_pTpts;
+	filename_stream_pTpts << global_path << "/pT_gauss_table.dat";
+	ifstream input_pTpts(filename_stream_pTpts.str().c_str());
+	ostringstream filename_stream_pphipts;
+	filename_stream_pphipts << global_path << "/phi_gauss_table.dat";
+	ifstream input_pphipts(filename_stream_pphipts.str().c_str());
+
+	double * dummy_pT_wts = new double [n_interp_pT_pts];
+	double * dummy_pphi_wts = new double [n_interp_pphi_pts];
+
+	for(int ipt = 0; ipt < n_interp_pT_pts; ipt++)
+		input_pTpts >> SPinterp_pT[ipt] >> dummy_pT_wts[ipt];
+
+	for(int ipphi = 0; ipphi < n_interp_pphi_pts; ipphi++)
+		input_pphipts >> SPinterp_pphi[ipphi] >> dummy_pphi_wts[ipphi];
+
+	if (VERBOSE > 0) *global_out_stream_ptr << "Read_in_all_dN_dypTdpTdphi(): read in pT and pphi points!" << endl;
+
+	input_pTpts.close();
+	input_pphipts.close();
+
+	return;
+}*/
 
 //End of file

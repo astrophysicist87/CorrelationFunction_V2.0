@@ -75,7 +75,6 @@ class CorrelationFunction
 		int Nparticle;
 		int target_particle_id;		//the particle whose spectra (with resonance contributions) you want to compute
 		int current_level_of_output;
-		int qspace_cs_slice_length;
 
 		int n_zeta_pts, n_v_pts, n_s_pts;
 		double v_min, v_max, zeta_min, zeta_max, s_min, s_max;
@@ -181,7 +180,7 @@ class CorrelationFunction
 		double * VEC_pstar, * VEC_Estar, * VEC_DeltaY, * VEC_Yp, * VEC_Ym, * VEC_s_factor, * VEC_g_s;
 		double ** VEC_P_Y, ** VEC_MTbar, ** VEC_DeltaMT, ** VEC_MTp, ** VEC_MTm, ** VEC_v_factor;
 		double *** VEC_MT, *** VEC_PPhi_tilde, *** VEC_PPhi_tildeFLIP, *** VEC_PT, *** VEC_zeta_factor;
-        	double * ssum_vec, * vsum_vec, * zetasum_vec, * Csum_vec;
+        	double ***** ssum_vec, ***** vsum_vec, ***** zetasum_vec, ***** Csum_vec;
 		
 		//Emission function
 		int FO_length;
@@ -211,7 +210,7 @@ class CorrelationFunction
 		double **R2_outlong_C, **R2_outlong_S;
 		double **R2_sidelong_C, **R2_sidelong_S;
 
-		double *** res_sign_info, *** res_log_info, *** res_moments_info;
+		double ******* res_sign_info, ******* res_log_info, ******* res_moments_info;
 		double ***** local_temp_moments, ******* temp_moments_array;
 		
 		//miscellaneous
@@ -249,7 +248,6 @@ class CorrelationFunction
 		void Cal_dN_dypTdpTdphi_with_weights_NEW(FO_surf* FOsurf_ptr, int local_pid, double cutoff);
 		double Cal_dN_dypTdpTdphi_function(FO_surf* FOsurf_ptr, int local_pid, double pT, double pphi);
 		void Do_resonance_integrals(int iKT, int iKphi, int dc_idx);
-		void Flatten_dN_dypTdpTdphi_moments(int parent_resonance_particle_id);
 		void get_rapidity_dependence(double * rap_indep_vector, double * rap_dep_vector, double rap_val);
 		void combine_sourcevariances(double * output, double * input, double * alpha_vec);
 		void Set_current_daughter_info(int dc_idx, int daughter_idx);
@@ -290,11 +288,11 @@ class CorrelationFunction
 		void Get_current_decay_string(int dc_idx, string * decay_string);
 		int lookup_resonance_idx_from_particle_id(int particle_id);
 		static inline double lin_int(double x_m_x1, double one_by_x2_m_x1, double f1, double f2);
-		void Edndp3(double ptr, double phir, double * results);
+		void Edndp3(double ptr, double phir, double ***** results);
 		void Set_q_points();
 		void Allocate_resonance_running_sum_vectors();
 		void Delete_resonance_running_sum_vectors();
-		void Zero_resonance_running_sum_vector(double * vec);
+		void Zero_resonance_running_sum_vector(double ***** vec);
 		void Setup_temp_arrays(double ***** local_temp_moments, double ******* temp_moments_array);
 		void Teardown_temp_arrays(double ***** local_temp_moments, double ******* temp_moments_array);
 

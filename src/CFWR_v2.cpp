@@ -432,20 +432,20 @@ bool CorrelationFunction::particles_are_the_same(int reso_idx1, int reso_idx2)
 
 void CorrelationFunction::Recycle_spacetime_moments()
 {
+	for(int ipt = 0; ipt < n_interp_pT_pts; ++ipt)
+	for(int iphi = 0; iphi < n_interp_pphi_pts; ++iphi)
 	for (int iqt = 0; iqt < qnpts; ++iqt)
 	for (int iqx = 0; iqx < qnpts; ++iqx)
 	for (int iqy = 0; iqy < qnpts; ++iqy)
 	for (int iqz = 0; iqz < qnpts; ++iqz)
 	for (int itrig = 0; itrig < 2; ++itrig)
-	for(int ipt = 0; ipt < n_interp_pT_pts; ++ipt)
-	for(int iphi = 0; iphi < n_interp_pphi_pts; ++iphi)
 	{
-		dN_dypTdpTdphi_moments[current_resonance_particle_id][iqt][iqx][iqy][iqz][itrig][ipt][iphi]
-				= dN_dypTdpTdphi_moments[reso_particle_id_of_moments_to_recycle][iqt][iqx][iqy][iqz][itrig][ipt][iphi];
-		ln_dN_dypTdpTdphi_moments[current_resonance_particle_id][iqt][iqx][iqy][iqz][itrig][ipt][iphi]
-				= ln_dN_dypTdpTdphi_moments[reso_particle_id_of_moments_to_recycle][iqt][iqx][iqy][iqz][itrig][ipt][iphi];
-		sign_of_dN_dypTdpTdphi_moments[current_resonance_particle_id][iqt][iqx][iqy][iqz][itrig][ipt][iphi]
-				= sign_of_dN_dypTdpTdphi_moments[reso_particle_id_of_moments_to_recycle][iqt][iqx][iqy][iqz][itrig][ipt][iphi];
+		dN_dypTdpTdphi_moments[current_resonance_particle_id][ipt][iphi][iqt][iqx][iqy][iqz][itrig]
+				= dN_dypTdpTdphi_moments[reso_particle_id_of_moments_to_recycle][ipt][iphi][iqt][iqx][iqy][iqz][itrig];
+		ln_dN_dypTdpTdphi_moments[current_resonance_particle_id][ipt][iphi][iqt][iqx][iqy][iqz][itrig]
+				= ln_dN_dypTdpTdphi_moments[reso_particle_id_of_moments_to_recycle][ipt][iphi][iqt][iqx][iqy][iqz][itrig];
+		sign_of_dN_dypTdpTdphi_moments[current_resonance_particle_id][ipt][iphi][iqt][iqx][iqy][iqz][itrig]
+				= sign_of_dN_dypTdpTdphi_moments[reso_particle_id_of_moments_to_recycle][ipt][iphi][iqt][iqx][iqy][iqz][itrig];
 	}
 
 
@@ -546,7 +546,7 @@ void CorrelationFunction::Set_dN_dypTdpTdphi_moments(FO_surf* FOsurf_ptr, int lo
 
 inline void CorrelationFunction::form_trig_sign_z(int isurf, int ieta, int iqt, int iqx, int iqy, int iqz, int ii, double * results)
 {
-	double zfactor = 1.0 - 2.0 * double(ii);
+	double zfactor = 1.0 - 2.0 * double(ii);		// related to symmetry in z-direction
 	double cosA0 = osc0[isurf][ieta][iqt][0], cosA1 = osc1[isurf][iqx][0], cosA2 = osc2[isurf][iqy][0], cosA3 = osc3[isurf][ieta][iqz][0];
 	double sinA0 = osc0[isurf][ieta][iqt][1], sinA1 = osc1[isurf][iqx][1], sinA2 = osc2[isurf][iqy][1], sinA3 = osc3[isurf][ieta][iqz][1];
 	results[0] = cosA0*cosA1*cosA2*cosA3
@@ -698,7 +698,6 @@ sw2.Start();
 sw2.Stop();
 *global_out_stream_ptr << "\t\t\t*** Took " << sw2.printTime() << " seconds for whole function." << endl;
 
-	//set log of dN_dypTdpTdphi_moments...
 	for(int ipt = 0; ipt < n_interp_pT_pts; ++ipt)
 	for(int ipphi = 0; ipphi < n_interp_pphi_pts; ++ipphi)
 	{
@@ -707,9 +706,12 @@ sw2.Stop();
 	}
 
 	for(int ipt = 0; ipt < n_interp_pT_pts; ++ipt)
+	{
 		delete [] temp_moments_array[ipt];
+		delete [] abs_temp_moments_array[ipt];
+	}
 	delete [] temp_moments_array;
-
+	delete [] abs_temp_moments_array;
 
 	return;
 }
@@ -858,7 +860,6 @@ sw2.Start();
 sw2.Stop();
 *global_out_stream_ptr << "\t\t\t*** Took " << sw2.printTime() << " seconds for whole function." << endl;
 
-	//set log of dN_dypTdpTdphi_moments...
 	for(int ipt = 0; ipt < n_interp_pT_pts; ++ipt)
 	for(int ipphi = 0; ipphi < n_interp_pphi_pts; ++ipphi)
 	{
@@ -867,9 +868,12 @@ sw2.Stop();
 	}
 
 	for(int ipt = 0; ipt < n_interp_pT_pts; ++ipt)
+	{
 		delete [] temp_moments_array[ipt];
+		delete [] abs_temp_moments_array[ipt];
+	}
 	delete [] temp_moments_array;
-
+	delete [] abs_temp_moments_array;
 
 	return;
 }
@@ -1019,9 +1023,9 @@ debug_sw.Start();
 	for (int itrig = 0; itrig < ntrig; ++itrig)
 	{
 		double temp = temp_moms_linear_array[iidx];
-		dN_dypTdpTdphi_moments[local_pid][iqt][iqx][iqy][iqz][itrig][ipt][iphi] = temp;
-		ln_dN_dypTdpTdphi_moments[local_pid][iqt][iqx][iqy][iqz][itrig][ipt][iphi] = log(abs(temp)+1.e-100);
-		sign_of_dN_dypTdpTdphi_moments[local_pid][iqt][iqx][iqy][iqz][itrig][ipt][iphi] = sgn(temp);
+		dN_dypTdpTdphi_moments[local_pid][ipt][iphi][iqt][iqx][iqy][iqz][itrig] = temp;
+		ln_dN_dypTdpTdphi_moments[local_pid][ipt][iphi][iqt][iqx][iqy][iqz][itrig] = log(abs(temp)+1.e-100);
+		sign_of_dN_dypTdpTdphi_moments[local_pid][ipt][iphi][iqt][iqx][iqy][iqz][itrig] = sgn(temp);
 		++iidx;
 	}
 
@@ -1054,7 +1058,7 @@ void CorrelationFunction::Set_giant_array()
 		form_trig_sign_z(isurf, ieta, iqt, iqx, iqy, iqz, 0, tmp_results_ii0);
 		form_trig_sign_z(isurf, ieta, iqt, iqx, iqy, iqz, 1, tmp_results_ii1);
 		giant_array[iga] = tmp_results_ii0[0] + tmp_results_ii1[0];
-		giant_array[iga+1] = tmp_results_ii0[0] + tmp_results_ii1[0];
+		giant_array[iga+1] = tmp_results_ii0[1] + tmp_results_ii1[1];
 		iga += 2;
 	}
 
@@ -1206,14 +1210,15 @@ debug_sw.Start();
 	for (int itrig = 0; itrig < ntrig; ++itrig)
 	{
 		double temp = temp_moms_linear_array[iidx];
-		dN_dypTdpTdphi_moments[local_pid][iqt][iqx][iqy][iqz][itrig][ipt][iphi] = temp;
-		ln_dN_dypTdpTdphi_moments[local_pid][iqt][iqx][iqy][iqz][itrig][ipt][iphi] = log(abs(temp)+1.e-100);
-		sign_of_dN_dypTdpTdphi_moments[local_pid][iqt][iqx][iqy][iqz][itrig][ipt][iphi] = sgn(temp);
+		dN_dypTdpTdphi_moments[local_pid][ipt][iphi][iqt][iqx][iqy][iqz][itrig] = temp;
+		ln_dN_dypTdpTdphi_moments[local_pid][ipt][iphi][iqt][iqx][iqy][iqz][itrig] = log(abs(temp)+1.e-100);
+		sign_of_dN_dypTdpTdphi_moments[local_pid][ipt][iphi][iqt][iqx][iqy][iqz][itrig] = sgn(temp);
 		++iidx;
 	}
 
 	delete [] temp_moms_linear_array;
 	delete [] linear_trig_arg_array;
+	delete [] giant_array;
 
 debug_sw.Stop();
 *global_out_stream_ptr << "Total function call took " << debug_sw.printTime() << " seconds." << endl;

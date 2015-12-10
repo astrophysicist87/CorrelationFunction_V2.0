@@ -200,9 +200,9 @@ if (1) return (0);*/
    correlation_function.Compute_correlation_function(FOsurf_ptr);
    //correlation_function.Get_GF_HBTradii(FOsurf_ptr, folderindex);	//does outputting of results too
    
-   //correlation_function.Output_total_target_dN_dypTdpTdphi(folderindex);
+   correlation_function.Output_total_target_dN_dypTdpTdphi(folderindex);
    correlation_function.Output_total_target_eiqx_dN_dypTdpTdphi(folderindex);
-   correlation_function.Output_all_dN_dypTdpTdphi(folderindex);
+   //correlation_function.Output_all_dN_dypTdpTdphi(folderindex);
    //correlation_function.Output_chosen_resonances();
    //correlation_function.Output_results(folderindex);
    output << "Finished calculating HBT radii via Gaussian fit method" << endl;

@@ -666,6 +666,23 @@ void CorrelationFunction::Update_sourcefunction(particle_info* particle, int FOa
 		}
 	}
 
+
+	weighted_S_p_array = new double *** [n_interp_pT_pts];
+	for (int ipt = 0; ipt < n_interp_pT_pts; ++ipt)
+	{
+		weighted_S_p_array[ipt] = new double ** [n_interp_pphi_pts];
+		for (int ipphi = 0; ipphi < n_interp_pphi_pts; ++ipphi)
+		{
+			weighted_S_p_array[ipt][ipphi] = new double * [FOarray_length];
+			for (int isurf = 0; isurf < FOarray_length; ++isurf)
+			{
+				weighted_S_p_array[ipt][ipphi][isurf] = new double [eta_s_npts];
+				for (int ieta = 0; ieta < eta_s_npts; ++ieta)
+					weighted_S_p_array[ipt][ipphi][isurf][ieta] = 0.0;
+			}
+		}
+	}
+
    //particle information
    particle_name = particle->name;
    particle_mass = particle->mass;

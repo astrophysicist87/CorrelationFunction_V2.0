@@ -104,6 +104,7 @@ class CorrelationFunction
 
 		// array to hold (weighted) spectra of current resonance and its daughter particles
 		double ******* current_resonance_spectra, ******** current_resonance_daughter_spectra;
+		double **** weighted_S_p_array;
 
 		//*************************************************************
 		//freeze-out surface interpolation arrays (prefix: "FOI_"), etc...
@@ -244,9 +245,7 @@ class CorrelationFunction
 		int Set_giant_HDF_array();
 		int Get_small_array_from_giant_HDF_array(int isurf, int ieta, double * small_array);
 		int Set_giant_chunked_HDF_array();
-		int Set_giant_chunked_HDF_array_V2_0();
-		int Get_chunk(int isurf, int ieta, double * small_array);
-		int Get_chunk_V2_0(int isurf, double small_array[][eta_s_npts * qnpts * qnpts * qnpts * qnpts * 2]);
+		int Get_chunk(int isurf, double small_array[][eta_s_npts * qnpts * qnpts * qnpts * qnpts * 2]);
 		int Clean_up_HDF_miscellany();
 		int Reset_HDF();
 
@@ -257,10 +256,8 @@ class CorrelationFunction
 		void Cal_dN_dypTdpTdphi(double** SP_p0, double** SP_px, double** SP_py, double** SP_pz, FO_surf* FOsurf_ptr);
 		void Cal_dN_dypTdpTdphi_vector(FO_surf* FOsurf_ptr, int local_pid);
 		void Cal_dN_dypTdpTdphi_heap(FO_surf* FOsurf_ptr, int local_pid);
-		void Cal_dN_dypTdpTdphi_heap_V2_0(FO_surf* FOsurf_ptr, int local_pid);
 		void Cal_dN_dypTdpTdphi_with_weights(FO_surf* FOsurf_ptr, int local_pid, double cutoff);
 		void Cal_dN_dypTdpTdphi_with_weights_with_HDF(FO_surf* FOsurf_ptr, int local_pid, double cutoff);
-		void Cal_dN_dypTdpTdphi_with_weights_with_HDF_V2_0(FO_surf* FOsurf_ptr, int local_pid, double cutoff);
 		double Cal_dN_dypTdpTdphi_function(FO_surf* FOsurf_ptr, int local_pid, double pT, double pphi);
 		void Do_resonance_integrals(int iKT, int iKphi, int dc_idx);
 		void Flatten_dN_dypTdpTdphi_moments(int parent_resonance_particle_id);

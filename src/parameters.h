@@ -45,9 +45,15 @@ const double eta_s_i = 0.0;
 const double eta_s_f = 4.0;
 
 //relative momentum information
-const int qnpts = 6;
+//const int qnpts = 6;
+//const double delta_q = 0.005;
+//const double init_q = -2.5*delta_q;
+//const int qnpts = 3;
+//const double delta_q = 0.005;
+//const double init_q = -delta_q;
+const int qnpts = 1;
 const double delta_q = 0.005;
-const double init_q = -2.5*delta_q;
+const double init_q = 0.0;
 
 
 //single particle spectra info

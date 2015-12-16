@@ -539,8 +539,7 @@ void CorrelationFunction::Set_dN_dypTdpTdphi_moments(FO_surf* FOsurf_ptr, int lo
 	CPStopwatch sw;
 	sw.Start();
 	//Cal_dN_dypTdpTdphi_vector(FOsurf_ptr, local_pid);
-	//Cal_dN_dypTdpTdphi_heap(FOsurf_ptr, local_pid);
-	Cal_dN_dypTdpTdphi_heap_V2_0(FOsurf_ptr, local_pid);
+	Cal_dN_dypTdpTdphi_heap(FOsurf_ptr, local_pid);
 	sw.Stop();
 	*global_out_stream_ptr << "CP#1: Took " << sw.printTime() << " seconds." << endl;
 
@@ -548,8 +547,7 @@ void CorrelationFunction::Set_dN_dypTdpTdphi_moments(FO_surf* FOsurf_ptr, int lo
 	*global_out_stream_ptr << "Computing weighted spectra..." << endl;
 	sw.Reset();
 	//Cal_dN_dypTdpTdphi_with_weights(FOsurf_ptr, local_pid, 1.0 - 1.e-10);
-	//Cal_dN_dypTdpTdphi_with_weights_with_HDF(FOsurf_ptr, local_pid, 1.0 - 1.e-10);
-	Cal_dN_dypTdpTdphi_with_weights_with_HDF_V2_0(FOsurf_ptr, local_pid, 1.0 - 1.e-10);
+	Cal_dN_dypTdpTdphi_with_weights_with_HDF(FOsurf_ptr, local_pid, 1.0 - 1.e-10);
 	sw.Stop();
 	*global_out_stream_ptr << "CP#2: Took " << sw.printTime() << " seconds." << endl;
 
@@ -774,170 +772,21 @@ void CorrelationFunction::Cal_dN_dypTdpTdphi_heap(FO_surf* FOsurf_ptr, int local
 	if (use_delta_f)
 		deltaf_prefactor = 1./(2.0*Tdec*Tdec*(Edec+Pdec));
 
-CPStopwatch sw, sw2, sw3;
-
-sw2.Start();
-	for(int ipt = 0; ipt < n_interp_pT_pts; ++ipt)
-	{
-		//if (ipt > 0) continue;
-		double pT = SPinterp_pT[ipt];
-		double * p0_pTslice = SPinterp_p0[ipt];
-		double * pz_pTslice = SPinterp_pz[ipt];
-
-		for(int iphi = 0; iphi < n_interp_pphi_pts; ++iphi)
-		{
-			double sin_pphi = sin_SPinterp_pphi[iphi];
-			double cos_pphi = cos_SPinterp_pphi[iphi];
-			*global_out_stream_ptr << "\t\t--> Doing pT = " << pT << ", pphi = " << SPinterp_pphi[iphi] << "..." << endl;
-			double px = pT*cos_pphi;
-			double py = pT*sin_pphi;
-			number_of_FOcells_above_cutoff_array[ipt][iphi] = floor(cutoff * FO_length * eta_s_npts);
-
-			double tempsum = 0.0, tempabssum = 0.0;
-
-			int iFOcell = 0;
-			priority_queue<pair<double, size_t> > FOcells_PQ;
-
-			for(int isurf = 0; isurf < FO_length; ++isurf)
-			{
-				FO_surf * surf = &FOsurf_ptr[isurf];
-
-				double tau = surf->tau;
-
-				double vx = surf->vx;
-				double vy = surf->vy;
-				double gammaT = surf->gammaT;
-
-				double da0 = surf->da0;
-				double da1 = surf->da1;
-				double da2 = surf->da2;
-
-				double pi00 = surf->pi00;
-				double pi01 = surf->pi01;
-				double pi02 = surf->pi02;
-				double pi11 = surf->pi11;
-				double pi12 = surf->pi12;
-				double pi22 = surf->pi22;
-				double pi33 = surf->pi33;
-
-				for(int ieta = 0; ieta < eta_s_npts; ++ieta)
-				{
-					double p0 = p0_pTslice[ieta];
-					double pz = pz_pTslice[ieta];
-
-					//now get distribution function, emission function, etc.
-					double f0 = 1./(exp( (gammaT*(p0*1. - px*vx - py*vy) - mu)*one_by_Tdec ) + sign);	//thermal equilibrium distributions
-	
-					//viscous corrections
-					double deltaf = 0.;
-					if (use_delta_f)
-						deltaf = deltaf_prefactor * (1. - sign*f0)
-								* (p0*p0*pi00 - 2.0*p0*px*pi01 - 2.0*p0*py*pi02 + px*px*pi11 + 2.0*px*py*pi12 + py*py*pi22 + pz*pz*pi33);
-
-					//p^mu d^3sigma_mu factor: The plus sign is due to the fact that the DA# variables are for the covariant surface integration
-					double S_p = prefactor*(p0*da0 + px*da1 + py*da2)*f0*(1.+deltaf);
-
-					//ignore points where delta f is large or emission function goes negative from pdsigma
-					if ((1. + deltaf < 0.0) || (flagneg == 1 && S_p < tol))
-					{
-						S_p = 0.0;
-						++iFOcell;			// N.B. - iFOcell == isurf * eta_s_npts + ieta
-						continue;
-					}
-
-					double S_p_withweight = S_p*tau*eta_s_weight[ieta];
-					tempsum += S_p_withweight;
-					tempabssum += abs(S_p_withweight);
-					addElementToQueue(FOcells_PQ, pair<double, size_t>(-abs(S_p_withweight), iFOcell), number_of_FOcells_above_cutoff_array[ipt][iphi]);
-					++iFOcell;			// N.B. - iFOcell == isurf * eta_s_npts + ieta
-				}
-			}
-			sw3.Start();
-			int FOcells_PQ_size = FOcells_PQ.size();
-			number_of_FOcells_above_cutoff_array[ipt][iphi] = FOcells_PQ_size;
-//*global_out_stream_ptr << "\t\t--> For pT = " << pT << ", pphi = " << SPinterp_pphi[iphi] << ": FOcells_PQ_size = " << FOcells_PQ_size << endl;
-			for (int ii = 0; ii < number_of_FOcells_above_cutoff_array[ipt][iphi]; ii++)
-			{
-				//cerr << "Made it to (ipt, ipphi, ii) = (" << ipt << ", " << iphi << ", " << ii << ") of " << FOcells_PQ_size << endl;
-				//pair<double, size_t> tmp_pair = FOcells_PQ.top();
-				most_important_FOcells[ipt][iphi][number_of_FOcells_above_cutoff_array[ipt][iphi] - 1 - ii] = FOcells_PQ.top().second;
-				FOcells_PQ.pop();
-			}
-			sw3.Stop();
-			temp_moments_array[ipt][iphi] = tempsum;
-			abs_temp_moments_array[ipt][iphi] = tempabssum;
-		}
-	}
-*global_out_stream_ptr << "\t\t\t*** Took total of " << sw3.printTime() << " seconds on ordering and copying." << endl;
-
-
-sw2.Stop();
-*global_out_stream_ptr << "\t\t\t*** Took " << sw2.printTime() << " seconds for whole function." << endl;
-
-	for(int ipt = 0; ipt < n_interp_pT_pts; ++ipt)
-	for(int ipphi = 0; ipphi < n_interp_pphi_pts; ++ipphi)
-	{
-		spectra[local_pid][ipt][ipphi] = temp_moments_array[ipt][ipphi];
-		abs_spectra[local_pid][ipt][ipphi] = abs_temp_moments_array[ipt][ipphi];
-	}
-
-	for(int ipt = 0; ipt < n_interp_pT_pts; ++ipt)
-	{
-		delete [] temp_moments_array[ipt];
-		delete [] abs_temp_moments_array[ipt];
-	}
-	delete [] temp_moments_array;
-	delete [] abs_temp_moments_array;
-
-	return;
-}
-
-void CorrelationFunction::Cal_dN_dypTdpTdphi_heap_V2_0(FO_surf* FOsurf_ptr, int local_pid)
-{
-	double ** temp_moments_array = new double * [n_interp_pT_pts];
-	double ** abs_temp_moments_array = new double * [n_interp_pT_pts];
-	for (int ipt = 0; ipt < n_interp_pT_pts; ipt++)
-	{
-		temp_moments_array[ipt] = new double [n_interp_pphi_pts];
-		abs_temp_moments_array[ipt] = new double [n_interp_pphi_pts];
-		for (int ipphi = 0; ipphi < n_interp_pphi_pts; ipphi++)
-		{
-			temp_moments_array[ipt][ipphi] = 0.0;
-			abs_temp_moments_array[ipt][ipphi] = 0.0;
-		}
-	}
-
-	//double cutoff = 0.30;		// only sort through top %30 most important fluid cells
-	double cutoff = 1.00;		// sort through all fluid cells
-
-	// set particle information
-	double sign = all_particles[local_pid].sign;
-	double degen = all_particles[local_pid].gspin;
-	double localmass = all_particles[local_pid].mass;
-	double mu = all_particles[local_pid].mu;
-
-	// set some freeze-out surface information that's constant the whole time
-	double prefactor = 1.0*degen/(8.0*M_PI*M_PI*M_PI)/(hbarC*hbarC*hbarC);
-	double Tdec = (&FOsurf_ptr[0])->Tdec;
-	double Pdec = (&FOsurf_ptr[0])->Pdec;
-	double Edec = (&FOsurf_ptr[0])->Edec;
-	double one_by_Tdec = 1./Tdec;
-	double deltaf_prefactor = 0.;
-	if (use_delta_f)
-		deltaf_prefactor = 1./(2.0*Tdec*Tdec*(Edec+Pdec));
+	double eta_s_symmetry_factor = 2.0;
 
 CPStopwatch sw, sw2, sw3;
 
 sw2.Start();
 	for(int ipt = 0; ipt < n_interp_pT_pts; ++ipt)
 	{
-		//if (ipt > 0) continue;
+		if (ipt > 0) continue;
 		double pT = SPinterp_pT[ipt];
 		double * p0_pTslice = SPinterp_p0[ipt];
 		double * pz_pTslice = SPinterp_pz[ipt];
 
 		for(int iphi = 0; iphi < n_interp_pphi_pts; ++iphi)
 		{
+			if (iphi > 0) continue;
 			double sin_pphi = sin_SPinterp_pphi[iphi];
 			double cos_pphi = cos_SPinterp_pphi[iphi];
 			*global_out_stream_ptr << "\t\t--> Doing pT = " << pT << ", pphi = " << SPinterp_pphi[iphi] << "..." << endl;
@@ -946,6 +795,7 @@ sw2.Start();
 			number_of_FOcells_above_cutoff_array[ipt][iphi] = floor(cutoff * FO_length);
 
 			double tempsum = 0.0, tempabssum = 0.0;
+			double ** weighted_S_pt_pphi_array = weighted_S_p_array[ipt][iphi];
 
 			int iFOcell = 0;
 			priority_queue<pair<double, size_t> > FOcells_PQ;
@@ -998,9 +848,13 @@ sw2.Start();
 						continue;
 					}
 
-					double S_p_withweight = S_p*tau*eta_s_weight[ieta];
-					tempsum += S_p_withweight;
-					temp_running_sum += S_p_withweight;
+					double S_p_withweight = S_p*tau*eta_s_weight[ieta];		//don't include eta_s_symmetry_factor here, for consistency with later calculations...
+					//weighted_S_pt_pphi_array[isurf][ieta] = S_p_withweight;
+					weighted_S_p_array[ipt][iphi][isurf][ieta] = S_p_withweight;
+					tempsum += eta_s_symmetry_factor*S_p_withweight;
+					temp_running_sum += eta_s_symmetry_factor*S_p_withweight;
+					*global_out_stream_ptr << setw(15) << setprecision(15) << "CHECKPT1: " << isurf << "   "
+							<< ieta << "   " << S_p_withweight << "   " << tempsum << "   "  << temp_running_sum << endl;
 				}
 				addElementToQueue(FOcells_PQ, pair<double, size_t>(-abs(temp_running_sum), iFOcell), number_of_FOcells_above_cutoff_array[ipt][iphi]);
 				tempabssum += abs(temp_running_sum);
@@ -1017,8 +871,8 @@ sw2.Start();
 			sw3.Stop();
 			temp_moments_array[ipt][iphi] = tempsum;
 			abs_temp_moments_array[ipt][iphi] = tempabssum;
-		}
-	}
+		}	// end of pphi loop
+	}		// end of pt loop
 *global_out_stream_ptr << "\t\t\t*** Took total of " << sw3.printTime() << " seconds on ordering and copying." << endl;
 
 
@@ -1030,6 +884,8 @@ sw2.Stop();
 	{
 		spectra[local_pid][ipt][ipphi] = temp_moments_array[ipt][ipphi];
 		abs_spectra[local_pid][ipt][ipphi] = abs_temp_moments_array[ipt][ipphi];
+//*global_out_stream_ptr << setw(15) << setprecision(15) << "CHECK: spectra[1][" << ipt << "][" << ipphi << "] = " << spectra[local_pid][ipt][ipphi] << endl
+//						<< "CHECK: abs_spectra[1][" << ipt << "][" << ipphi << "] = " << abs_spectra[local_pid][ipt][ipphi] << endl;
 	}
 
 	for(int ipt = 0; ipt < n_interp_pT_pts; ++ipt)
@@ -1234,184 +1090,7 @@ debug_sw.Stop();
 	return;
 }
 
-void CorrelationFunction::Cal_dN_dypTdpTdphi_with_weights_with_HDF(FO_surf* FOsurf_ptr, int local_pid, double cutoff)
-{
-CPStopwatch debug_sw, debug_sw2;
-debug_sw.Start();
-	int ntrig = 2;
-	int temp_moms_lin_arr_length = n_interp_pT_pts * n_interp_pphi_pts * qnpts * qnpts * qnpts * qnpts * ntrig;
-	int lin_TAA_length = qnpts * qnpts * qnpts * qnpts * ntrig;
-
-	double * temp_moms_linear_array = new double [temp_moms_lin_arr_length];
-	for (int i = 0; i < temp_moms_lin_arr_length; ++i)
-		temp_moms_linear_array[i] = 0.0;
-
-	// set particle information
-	double sign = all_particles[local_pid].sign;
-	double degen = all_particles[local_pid].gspin;
-	double localmass = all_particles[local_pid].mass;
-	double mu = all_particles[local_pid].mu;
-
-	// set some freeze-out surface information that's constant the whole time
-	double prefactor = 1.0*degen/(8.0*M_PI*M_PI*M_PI)/(hbarC*hbarC*hbarC);
-	double Tdec = (&FOsurf_ptr[0])->Tdec;
-	double Pdec = (&FOsurf_ptr[0])->Pdec;
-	double Edec = (&FOsurf_ptr[0])->Edec;
-	double one_by_Tdec = 1./Tdec;
-	double deltaf_prefactor = 0.;
-	if (use_delta_f)
-		deltaf_prefactor = 1./(2.0*Tdec*Tdec*(Edec+Pdec));
-
-	int lin_TMLAL_idx = 0, lin_TAA_idx = 0;
-
-	double * small_array;
-
-	//int HDFsuccess = Set_giant_HDF_array();
-	int HDFsuccess = Set_giant_chunked_HDF_array();
-	if (HDFsuccess < 0)
-	{
-		cerr << "Failed to set HDF5 array!  Exiting..." << endl;
-		exit;
-	}
-
-	for (int ipt = 0; ipt < n_interp_pT_pts; ++ipt)
-	{
-		//if (ipt > 0) continue;
-		double pT = SPinterp_pT[ipt];
-		double * p0_pTslice = SPinterp_p0[ipt];
-		double * pz_pTslice = SPinterp_pz[ipt];
-
-		for (int iphi = 0; iphi < n_interp_pphi_pts; ++iphi)
-		{
-			debug_sw2.Reset();
-		//if (iphi > 0) continue;
-			*global_out_stream_ptr << "\t\t--> Doing pT = " << pT << ", pphi = " << SPinterp_pphi[iphi] << "..." << endl;
-			double sin_pphi = sin_SPinterp_pphi[iphi];
-			double cos_pphi = cos_SPinterp_pphi[iphi];
-			double px = pT*cos_pphi;
-			double py = pT*sin_pphi;
-			double running_sum = 0.0;
-			int tmplen = FO_length * eta_s_npts;
-			for (int index = 0; index < tmplen; ++index)
-			{
-				if (running_sum >= cutoff)
-				{
-					*global_out_stream_ptr << "Convergence reached at index == " << index << "/" << tmplen << "!" << endl
-											<< "   --> finished with " << 100.*running_sum << "% of integrals completed!" << endl;
-					break;
-				}
-				else if (index >= number_of_FOcells_above_cutoff_array[ipt][iphi])
-				{
-					*global_out_stream_ptr << "WARNING: you didn't choose large enough number of partial ordered FO cells!" << endl
-											<< "   --> quit with only " << 100.*running_sum << "% < " << 100.*cutoff << "% of integrals completed!" << endl;
-					break;
-				}
-				int tmp = most_important_FOcells[ipt][iphi][index];
-				int isurf = tmp / eta_s_npts;
-				int ieta = tmp % eta_s_npts;
-				FO_surf * surf = &FOsurf_ptr[isurf];
-
-				small_array = new double [lin_TAA_length];
-				//int HDFsuccess = Get_small_array_from_giant_HDF_array(isurf, ieta, small_array);
-				int HDFsuccess = Get_chunk(isurf, ieta, small_array);
-				lin_TAA_idx = 0;
-				if (HDFsuccess < 0)
-				{
-					cerr << "Failed to set HDF5 array!  Exiting..." << endl;
-					exit;
-				}
-
-				double tau = surf->tau;
-				double vx = surf->vx;
-				double vy = surf->vy;
-				double gammaT = surf->gammaT;
-
-				double da0 = surf->da0;
-				double da1 = surf->da1;
-				double da2 = surf->da2;
-
-				double pi00 = surf->pi00;
-				double pi01 = surf->pi01;
-				double pi02 = surf->pi02;
-				double pi11 = surf->pi11;
-				double pi12 = surf->pi12;
-				double pi22 = surf->pi22;
-				double pi33 = surf->pi33;
-
-				// start (weighted) Cooper-Frye integration here...
-				double p0 = p0_pTslice[ieta];
-				double pz = pz_pTslice[ieta];
-
-				//now get distribution function, emission function, etc.
-				double f0 = 1./(exp( (gammaT*(p0*1. - px*vx - py*vy) - mu)*one_by_Tdec )+sign);	//thermal equilibrium distributions
-
-				//viscous corrections
-				double deltaf = 0.;
-				if (use_delta_f)
-					deltaf = deltaf_prefactor * (1. - sign*f0)
-							* (p0*p0*pi00 - 2.0*p0*px*pi01 - 2.0*p0*py*pi02 + px*px*pi11 + 2.0*px*py*pi12 + py*py*pi22 + pz*pz*pi33);
-
-				//p^mu d^3sigma_mu factor: The plus sign is due to the fact that the DA# variables are for the covariant surface integration
-				double S_p = prefactor*(p0*da0 + px*da1 + py*da2)*f0*(1.+deltaf);
-
-				//ignore points where delta f is large or emission function goes negative from pdsigma
-				if ((1. + deltaf < 0.0) || (flagneg == 1 && S_p < tol))
-				{
-					S_p = 0.0;
-					continue;
-				}
-
-				double S_p_withweight = S_p*tau*eta_s_weight[ieta];
-
-				lin_TMLAL_idx = (ipt * n_interp_pphi_pts + iphi) * lin_TAA_length;
-				for (int iqt = 0; iqt < qnpts; ++iqt)
-				for (int iqx = 0; iqx < qnpts; ++iqx)
-				for (int iqy = 0; iqy < qnpts; ++iqy)
-				for (int iqz = 0; iqz < qnpts; ++iqz)
-				for (int itrig = 0; itrig < ntrig; ++itrig)
-				{
-					// notice carefully worked index math to speed up calculations...
-					temp_moms_linear_array[lin_TMLAL_idx] += small_array[lin_TAA_idx] * S_p_withweight;
-					++lin_TAA_idx;
-					++lin_TMLAL_idx;
-				}
-				running_sum += abs(S_p_withweight) / abs_spectra[local_pid][ipt][iphi];
-				delete [] small_array;
-			}
-		debug_sw2.Stop();
-		*global_out_stream_ptr << "\t\t\t*** Took "<< debug_sw2.printTime() << " seconds." << endl;
-		}
-	}
-
-	int iidx = 0;
-	for (int ipt = 0; ipt < n_interp_pT_pts; ++ipt)
-	for (int iphi = 0; iphi < n_interp_pphi_pts; ++iphi)
-	for (int iqt = 0; iqt < qnpts; ++iqt)
-	for (int iqx = 0; iqx < qnpts; ++iqx)
-	for (int iqy = 0; iqy < qnpts; ++iqy)
-	for (int iqz = 0; iqz < qnpts; ++iqz)
-	for (int itrig = 0; itrig < ntrig; ++itrig)
-	{
-		double temp = temp_moms_linear_array[iidx];
-		dN_dypTdpTdphi_moments[local_pid][ipt][iphi][iqt][iqx][iqy][iqz][itrig] = temp;
-		ln_dN_dypTdpTdphi_moments[local_pid][ipt][iphi][iqt][iqx][iqy][iqz][itrig] = log(abs(temp)+1.e-100);
-		sign_of_dN_dypTdpTdphi_moments[local_pid][ipt][iphi][iqt][iqx][iqy][iqz][itrig] = sgn(temp);
-		++iidx;
-	}
-
-	// Clean up
-	delete [] temp_moms_linear_array;
-	delete [] giant_array;
-
-	Clean_up_HDF_miscellany();
-
-debug_sw.Stop();
-*global_out_stream_ptr << "Total function call took " << debug_sw.printTime() << " seconds." << endl;
-
-	return;
-}
-
-void CorrelationFunction::Cal_dN_dypTdpTdphi_with_weights_with_HDF_V2_0(FO_surf* FOsurf_ptr, int local_pid, double cutoff)
+/*void CorrelationFunction::Cal_dN_dypTdpTdphi_with_weights_with_HDF(FO_surf* FOsurf_ptr, int local_pid, double cutoff)
 {
 	CPStopwatch debug_sw, debug_sw2;
 	debug_sw.Start();
@@ -1441,13 +1120,16 @@ void CorrelationFunction::Cal_dN_dypTdpTdphi_with_weights_with_HDF_V2_0(FO_surf*
 	if (use_delta_f)
 		deltaf_prefactor = 1./(2.0*Tdec*Tdec*(Edec+Pdec));
 
+	double eta_s_symmetry_factor = 2.0;
+
 	int lin_TMLAL_idx = 0, lin_TAA_idx = 0;
 
 	double small_array[1][lin_TAA_length];
+	//double flattened_small_array[lin_TAA_length];
 	for (int ii = 0; ii < lin_TAA_length; ++ii)
 		small_array[0][ii] = 0.0;
 
-	int HDFsuccess = Set_giant_chunked_HDF_array_V2_0();
+	int HDFsuccess = Set_giant_chunked_HDF_array();
 	if (HDFsuccess < 0)
 	{
 		cerr << "Failed to set HDF5 array!  Exiting..." << endl;
@@ -1456,7 +1138,7 @@ void CorrelationFunction::Cal_dN_dypTdpTdphi_with_weights_with_HDF_V2_0(FO_surf*
 
 	for (int ipt = 0; ipt < n_interp_pT_pts; ++ipt)
 	{
-		//if (ipt == 0) continue;
+		if (ipt > 0) continue;
 		double pT = SPinterp_pT[ipt];
 		double * p0_pTslice = SPinterp_p0[ipt];
 		double * pz_pTslice = SPinterp_pz[ipt];
@@ -1466,7 +1148,167 @@ void CorrelationFunction::Cal_dN_dypTdpTdphi_with_weights_with_HDF_V2_0(FO_surf*
 		for (int iphi = 0; iphi < n_interp_pphi_pts; ++iphi)
 		{
 			debug_sw2.Reset();
-			//if (iphi > 0) continue;
+			if (iphi > 0) continue;
+			*global_out_stream_ptr << "Doing pT = " << pT << ", pphi = " << SPinterp_pphi[iphi] << "..." << endl
+					<< "with cutoff = " << cutoff << " and # of FOCells above cutoff = " << number_of_FOcells_above_cutoff_array[ipt][iphi] << endl;
+			int ptphi_index = ipt * n_interp_pphi_pts + iphi;
+			size_t * most_important_FOcells_for_current_pt_and_pphi = most_important_FOcells[ipt][iphi];
+			double running_sum = 0.0, correct_running_sum = 0.0;
+
+			double ** weighted_S_pt_pphi_array = weighted_S_p_array[ipt][iphi];
+
+			for (int index = 0; index < FO_length; ++index)
+			{
+				if (running_sum >= cutoff)
+				{
+					*global_out_stream_ptr << "   --> Convergence reached at index == " << index << "/" << FO_length << "!" << endl
+											<< "   --> Finished with " << 100.*running_sum << "% of integrals completed!" << endl;
+					//break;
+				}
+				else if (index >= number_of_FOcells_above_cutoff_array[ipt][iphi])
+				{
+					*global_out_stream_ptr << "WARNING: you didn't choose large enough number of partial ordered FO cells!" << endl
+											<< "   --> quit with only " << 100.*running_sum << "% < " << 100.*cutoff << "% of integrals completed!" << endl;
+					//break;
+				}
+
+				int isurf = most_important_FOcells_for_current_pt_and_pphi[index];
+
+				int HDFsuccess3 = Get_chunk(isurf, small_array);
+				//for (int isa = 0; isa < lin_TAA_length; ++isa)
+				//	flattened_small_array[isa] = small_array[0][isa];
+				if (HDFsuccess3 < 0)
+				{
+					cerr << "Failed to access HDF5 array!  Exiting..." << endl;
+					exit;
+				}
+
+				lin_TAA_idx = 0;
+
+				double temp_running_sum = 0.0;
+				for(int ieta = 0; ieta < eta_s_npts; ++ieta)
+				{
+					//double S_p_withweight = weighted_S_pt_pphi_array[isurf][ieta];
+					double S_p_withweight = weighted_S_p_array[ipt][iphi][isurf][ieta];
+					if (S_p_withweight < tol)
+					{
+						lin_TAA_idx += FT_loop_length;
+						continue;
+					}
+
+					lin_TMLAL_idx = ptphi_index * FT_loop_length;
+
+					for (int iqt = 0; iqt < qnpts; ++iqt)
+					for (int iqx = 0; iqx < qnpts; ++iqx)
+					for (int iqy = 0; iqy < qnpts; ++iqy)
+					for (int iqz = 0; iqz < qnpts; ++iqz)
+					for (int itrig = 0; itrig < ntrig; ++itrig)
+					{
+						// notice carefully worked index math to speed up calculations...
+						//temp_moms_linear_array[lin_TMLAL_idx] += flattened_small_array[lin_TAA_idx] * S_p_withweight;
+						temp_moms_linear_array[lin_TMLAL_idx] += small_array[0][lin_TAA_idx] * S_p_withweight;	//small_array is 2 (cos) or 0 (sin) at q=0
+						++lin_TAA_idx;
+						++lin_TMLAL_idx;
+					}
+					temp_running_sum += eta_s_symmetry_factor*S_p_withweight;		//gives eta_s-integrated values
+					*global_out_stream_ptr << setw(15) << setprecision(15) << "CHECKPT2: " << isurf << "   "
+							<< ieta << "   " << S_p_withweight << "   " << temp_moms_linear_array[0] << "   "  << temp_running_sum << endl;
+				}
+				running_sum += abs(temp_running_sum) / abs_spectra[local_pid][ipt][iphi];
+				correct_running_sum += temp_running_sum / spectra[local_pid][ipt][iphi];
+			}
+			delete [] most_important_FOcells_for_current_pt_and_pphi;
+			debug_sw2.Stop();
+			*global_out_stream_ptr << "   --> Took " << debug_sw2.printTime() << " seconds for pT = " << pT << ", pphi = " << SPinterp_pphi[iphi] << "." << endl;
+		}
+	}
+
+	int iidx = 0;
+	for (int ipt = 0; ipt < n_interp_pT_pts; ++ipt)
+	for (int iphi = 0; iphi < n_interp_pphi_pts; ++iphi)
+	for (int iqt = 0; iqt < qnpts; ++iqt)
+	for (int iqx = 0; iqx < qnpts; ++iqx)
+	for (int iqy = 0; iqy < qnpts; ++iqy)
+	for (int iqz = 0; iqz < qnpts; ++iqz)
+	for (int itrig = 0; itrig < ntrig; ++itrig)
+	{
+		double temp = temp_moms_linear_array[iidx];
+		dN_dypTdpTdphi_moments[local_pid][ipt][iphi][iqt][iqx][iqy][iqz][itrig] = temp;
+		ln_dN_dypTdpTdphi_moments[local_pid][ipt][iphi][iqt][iqx][iqy][iqz][itrig] = log(abs(temp)+1.e-100);
+		sign_of_dN_dypTdpTdphi_moments[local_pid][ipt][iphi][iqt][iqx][iqy][iqz][itrig] = sgn(temp);
+		++iidx;
+	}
+
+	// Clean up
+	delete [] temp_moms_linear_array;
+	delete [] giant_array;
+
+	Clean_up_HDF_miscellany();
+
+	debug_sw.Stop();
+	*global_out_stream_ptr << "Total function call took " << debug_sw.printTime() << " seconds." << endl;
+
+	return;
+}*/
+
+void CorrelationFunction::Cal_dN_dypTdpTdphi_with_weights_with_HDF(FO_surf* FOsurf_ptr, int local_pid, double cutoff)
+{
+	CPStopwatch debug_sw, debug_sw2;
+	debug_sw.Start();
+
+	int ntrig = 2;
+	int temp_moms_lin_arr_length = n_interp_pT_pts * n_interp_pphi_pts * qnpts * qnpts * qnpts * qnpts * ntrig;
+	int lin_TAA_length = eta_s_npts * qnpts * qnpts * qnpts * qnpts * ntrig;
+	int FT_loop_length = qnpts * qnpts * qnpts * qnpts * ntrig;
+
+	double * temp_moms_linear_array = new double [temp_moms_lin_arr_length];
+	for (int i = 0; i < temp_moms_lin_arr_length; ++i)
+		temp_moms_linear_array[i] = 0.0;
+
+	// set particle information
+	double sign = all_particles[local_pid].sign;
+	double degen = all_particles[local_pid].gspin;
+	double localmass = all_particles[local_pid].mass;
+	double mu = all_particles[local_pid].mu;
+
+	// set some freeze-out surface information that's constant the whole time
+	double prefactor = 1.0*degen/(8.0*M_PI*M_PI*M_PI)/(hbarC*hbarC*hbarC);
+	double Tdec = (&FOsurf_ptr[0])->Tdec;
+	double Pdec = (&FOsurf_ptr[0])->Pdec;
+	double Edec = (&FOsurf_ptr[0])->Edec;
+	double one_by_Tdec = 1./Tdec;
+	double deltaf_prefactor = 0.;
+	if (use_delta_f)
+		deltaf_prefactor = 1./(2.0*Tdec*Tdec*(Edec+Pdec));
+
+	double eta_s_symmetry_factor = 2.0;
+
+	int lin_TMLAL_idx = 0, lin_TAA_idx = 0;
+
+	double small_array[1][lin_TAA_length];
+	for (int ii = 0; ii < lin_TAA_length; ++ii)
+		small_array[0][ii] = 0.0;
+
+	int HDFsuccess = Set_giant_chunked_HDF_array();
+	if (HDFsuccess < 0)
+	{
+		cerr << "Failed to set HDF5 array!  Exiting..." << endl;
+		exit;
+	}
+
+	for (int ipt = 0; ipt < n_interp_pT_pts; ++ipt)
+	{
+		if (ipt > 0) continue;
+		double pT = SPinterp_pT[ipt];
+		double * p0_pTslice = SPinterp_p0[ipt];
+		double * pz_pTslice = SPinterp_pz[ipt];
+
+		int HDFsuccess2 = Reset_HDF();
+
+		for (int iphi = 0; iphi < n_interp_pphi_pts; ++iphi)
+		{
+			debug_sw2.Reset();
+			if (iphi > 0) continue;
 			*global_out_stream_ptr << "Doing pT = " << pT << ", pphi = " << SPinterp_pphi[iphi] << "..." << endl;
 			double sin_pphi = sin_SPinterp_pphi[iphi];
 			double cos_pphi = cos_SPinterp_pphi[iphi];
@@ -1492,7 +1334,7 @@ void CorrelationFunction::Cal_dN_dypTdpTdphi_with_weights_with_HDF_V2_0(FO_surf*
 				int isurf = most_important_FOcells[ipt][iphi][index];
 				FO_surf * surf = &FOsurf_ptr[isurf];
 
-				int HDFsuccess3 = Get_chunk_V2_0(isurf, small_array);
+				int HDFsuccess3 = Get_chunk(isurf, small_array);
 				if (HDFsuccess3 < 0)
 				{
 					cerr << "Failed to access HDF5 array!  Exiting..." << endl;
@@ -1559,7 +1401,7 @@ void CorrelationFunction::Cal_dN_dypTdpTdphi_with_weights_with_HDF_V2_0(FO_surf*
 						++lin_TAA_idx;
 						++lin_TMLAL_idx;
 					}
-					temp_running_sum += S_p_withweight;
+					temp_running_sum += eta_s_symmetry_factor*S_p_withweight;
 				}
 				running_sum += abs(temp_running_sum) / abs_spectra[local_pid][ipt][iphi];
 			}

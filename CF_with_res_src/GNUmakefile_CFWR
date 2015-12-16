@@ -9,11 +9,17 @@
 ##			clean		remove objectfiles in obj_$TYPE 
 ##			distclean	remove all objectsfiles and binaries
 ##  
+## #$(SRCDIR)/CFWR_HDF.cpp: $(SRCDIR)/CFWR.h
+## #$(SRCDIR)/CFWR_HDF.cpp \
 
-CC := $(shell /home/plumberg.1/iEBE/EBE-Node/crank/configure_compiler_C++.sh)
-TMP= $(shell /home/plumberg.1/iEBE/EBE-Node/crank/configure_compiler_C++_Flags.sh)
-#CFLAGS=${TMP} -p -g
-CFLAGS=${TMP}
+export HDF5_CXX=$(shell /home/plumberg.1/iEBE/EBE-Node/crank/configure_compiler_C++.sh)
+export HDF5_CXXLINKER=$(shell /home/plumberg.1/iEBE/EBE-Node/crank/configure_compiler_C++.sh)
+export HDF5_CLINKER=$(shell /home/plumberg.1/iEBE/EBE-Node/crank/configure_compiler_C++.sh)
+
+#CC := $(shell /home/plumberg.1/iEBE/EBE-Node/crank/configure_compiler_C++.sh)
+CC := h5c++
+CFLAGS= $(shell /home/plumberg.1/iEBE/EBE-Node/crank/configure_compiler_C++_Flags.sh)
+CFLAGS += -g
 
 RM		=	rm -f
 O               =       .o
@@ -30,6 +36,7 @@ endif
 SRC		=	correlation_function_with_resonances.cpp \
 			$(SRCDIR)/readindata.cpp \
 			$(SRCDIR)/CFWR.cpp \
+			$(SRCDIR)/CFWR_HDF.cpp \
 			$(SRCDIR)/CFWR_admin.cpp \
 			$(SRCDIR)/CFWR_resonance.cpp \
 			$(SRCDIR)/CFWR_IO.cpp \
@@ -99,6 +106,7 @@ install:	$(TARGET)
 				correlation_function_with_resonances.h
 $(SRCDIR)/Arsenal.cpp: $(SRCDIR)/Arsenal.h
 $(SRCDIR)/CFWR.cpp: $(SRCDIR)/CFWR.h $(SRCDIR)/Arsenal.h $(SRCDIR)/gauss_quadrature.h $(SRCDIR)/CPStopwatch.h $(SRCDIR)/Stopwatch.h
+$(SRCDIR)/CFWR_HDF.cpp: $(SRCDIR)/CFWR.h
 $(SRCDIR)/CFWR_admin.cpp: $(SRCDIR)/CFWR.h $(SRCDIR)/Arsenal.h $(SRCDIR)/gauss_quadrature.h
 $(SRCDIR)/CFWR_IO.cpp: $(SRCDIR)/CFWR.h $(SRCDIR)/Arsenal.h $(SRCDIR)/gauss_quadrature.h
 $(SRCDIR)/CFWR_GFroutines.cpp: $(SRCDIR)/CFWR.h $(SRCDIR)/Arsenal.h $(SRCDIR)/gauss_quadrature.h

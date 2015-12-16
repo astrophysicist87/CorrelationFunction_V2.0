@@ -19,6 +19,12 @@
 #include <gsl/gsl_blas.h>     // gsl linear algebra stuff
 #include <gsl/gsl_multifit_nlin.h>  // gsl multidimensional fitting
 
+#include "H5Cpp.h"
+
+//#ifndef H5_NO_NAMESPACE
+//    using namespace H5;
+//#endif
+
 #include "readindata.h"
 #include "parameters.h"
 #include "Arsenal.h"
@@ -229,24 +235,32 @@ class CorrelationFunction
 		bool Search_for_similar_particle(int dc_idx, int * result);
 
 	public:
-		CorrelationFunction(particle_info* particle, particle_info* all_particles_in, int Nparticle,
-				FO_surf* FOsurf_ptr, vector<int> chosen_resonances, int particle_idx, ofstream& myout);
-		~CorrelationFunction();
-
 		void Determine_plane_angle(FO_surf* FOsurf_ptr, int dc_idx);
 		void Compute_correlation_function(FO_surf* FOsurf_ptr);
 		void Update_sourcefunction(particle_info* particle, int FOarray_length, int particle_idx);
 		bool fexists(const char *filename);
+
+		// HDF routines
+		int Set_giant_HDF_array();
+		int Get_small_array_from_giant_HDF_array(int isurf, int ieta, double * small_array);
+		int Set_giant_chunked_HDF_array();
+		int Set_giant_chunked_HDF_array_V2_0();
+		int Get_chunk(int isurf, int ieta, double * small_array);
+		int Get_chunk_V2_0(int isurf, double small_array[][eta_s_npts * qnpts * qnpts * qnpts * qnpts * 2]);
+		int Clean_up_HDF_miscellany();
+		int Reset_HDF();
 
 		void Set_giant_array();
 		void addElementToQueue(priority_queue<pair<double, size_t> >& p, pair<double, size_t> elem, size_t max_size);
 
 		void Set_dN_dypTdpTdphi_moments(FO_surf* FOsurf_ptr, int dc_idx);
 		void Cal_dN_dypTdpTdphi(double** SP_p0, double** SP_px, double** SP_py, double** SP_pz, FO_surf* FOsurf_ptr);
-		void Cal_dN_dypTdpTdphi(FO_surf* FOsurf_ptr, int local_pid);
-		void Cal_dN_dypTdpTdphi_NEW(FO_surf* FOsurf_ptr, int local_pid);
-		void Cal_dN_dypTdpTdphi_with_weights(FO_surf* FOsurf_ptr, int local_pid);
-		void Cal_dN_dypTdpTdphi_with_weights_NEW(FO_surf* FOsurf_ptr, int local_pid, double cutoff);
+		void Cal_dN_dypTdpTdphi_vector(FO_surf* FOsurf_ptr, int local_pid);
+		void Cal_dN_dypTdpTdphi_heap(FO_surf* FOsurf_ptr, int local_pid);
+		void Cal_dN_dypTdpTdphi_heap_V2_0(FO_surf* FOsurf_ptr, int local_pid);
+		void Cal_dN_dypTdpTdphi_with_weights(FO_surf* FOsurf_ptr, int local_pid, double cutoff);
+		void Cal_dN_dypTdpTdphi_with_weights_with_HDF(FO_surf* FOsurf_ptr, int local_pid, double cutoff);
+		void Cal_dN_dypTdpTdphi_with_weights_with_HDF_V2_0(FO_surf* FOsurf_ptr, int local_pid, double cutoff);
 		double Cal_dN_dypTdpTdphi_function(FO_surf* FOsurf_ptr, int local_pid, double pT, double pphi);
 		void Do_resonance_integrals(int iKT, int iKphi, int dc_idx);
 		void Flatten_dN_dypTdpTdphi_moments(int parent_resonance_particle_id);
@@ -263,7 +277,7 @@ class CorrelationFunction
 		void Delete_decay_channel_info();
 		void Compute_source_variances(int iKT, int iKphi);
 
-		inline void form_trig_sign_z(int isurf, int ieta, int iqt, int iqx, int iqy, int iqz, int ii, double * results);
+		void form_trig_sign_z(int isurf, int ieta, int iqt, int iqx, int iqy, int iqz, int ii, double * results);
 
 		void Get_source_variances(int, int);
 		void Calculate_R2_side(int, int);
@@ -328,6 +342,16 @@ class CorrelationFunction
 		bool read_in_all_dN_dypTdpTdphi, output_all_dN_dypTdpTdphi;
 		double fraction_of_resonances;
 		double * SPinterp_pT_public, * pTdep_fractions_of_resonances;
+
+		// need to hold giant array stuff
+		H5::DataSpace * dataspace, * memspace;
+		H5::H5File * file;
+		H5::DataSet * dataset;
+
+		CorrelationFunction(particle_info* particle, particle_info* all_particles_in, int Nparticle,
+				FO_surf* FOsurf_ptr, vector<int> chosen_resonances, int particle_idx, ofstream& myout);
+		~CorrelationFunction();
+
 };
 
 #endif

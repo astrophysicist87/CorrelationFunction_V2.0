@@ -3,6 +3,7 @@
 
 #include<string>
 #include<sstream>
+#include "H5Cpp.h"
 
 using namespace std;
 
@@ -18,6 +19,14 @@ using namespace std;
 #define DEBUG				false		// flag for output of debugging statements
 #define SPACETIME_MOMENTS_ONLY		false		// duh
 #define DO_ALL_DECAY_CHANNELS		false		// duh
+#define USE_HDF5			false		// utilizes HDF5 software to store large arrays
+
+#ifndef H5_NO_NAMESPACE
+    using namespace H5;
+#endif
+
+const int RANK = 1;
+const int RANKV2 = 2;
 
 const double hbarC=0.197327053;		//GeV*fm
 const double hbarC3=0.00768351405;
@@ -36,9 +45,9 @@ const double eta_s_i = 0.0;
 const double eta_s_f = 4.0;
 
 //relative momentum information
-const int qnpts = 3;
+const int qnpts = 6;
 const double delta_q = 0.005;
-const double init_q = -delta_q;
+const double init_q = -2.5*delta_q;
 
 
 //single particle spectra info

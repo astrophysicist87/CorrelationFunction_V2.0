@@ -191,83 +191,46 @@ debugger(__LINE__, __FILE__);
 			}
 		}
 	}
-	//debugger(__LINE__, __FILE__);
-	//*****************************************************************
-	// Only make dN_dypTdpTdphi_moments large enough to hold all necessary resonance, not decay channels
-	//*****************************************************************
-	dN_dypTdpTdphi_moments = new double ******* [Nparticle];
-	ln_dN_dypTdpTdphi_moments = new double ******* [Nparticle];
-	sign_of_dN_dypTdpTdphi_moments = new double ******* [Nparticle];
-	for (int ir=0; ir<Nparticle; ir++)
-	{
-		dN_dypTdpTdphi_moments[ir] = new double ****** [n_interp_pT_pts];
-		ln_dN_dypTdpTdphi_moments[ir] = new double ****** [n_interp_pT_pts];
-		sign_of_dN_dypTdpTdphi_moments[ir] = new double ****** [n_interp_pT_pts];
-		for (int ipt = 0; ipt < n_interp_pT_pts; ++ipt)
-		{
-			dN_dypTdpTdphi_moments[ir][ipt] = new double ***** [n_interp_pphi_pts];
-			ln_dN_dypTdpTdphi_moments[ir][ipt] = new double ***** [n_interp_pphi_pts];
-			sign_of_dN_dypTdpTdphi_moments[ir][ipt] = new double ***** [n_interp_pphi_pts];
-			for (int ipphi = 0; ipphi < n_interp_pphi_pts; ++ipphi)
-			{
-				dN_dypTdpTdphi_moments[ir][ipt][ipphi] = new double **** [qnpts];
-				ln_dN_dypTdpTdphi_moments[ir][ipt][ipphi] = new double **** [qnpts];
-				sign_of_dN_dypTdpTdphi_moments[ir][ipt][ipphi] = new double **** [qnpts];
-				for (int iqt = 0; iqt < qnpts; ++iqt)
-				{
-					dN_dypTdpTdphi_moments[ir][ipt][ipphi][iqt] = new double *** [qnpts];
-					ln_dN_dypTdpTdphi_moments[ir][ipt][ipphi][iqt] = new double *** [qnpts];
-					sign_of_dN_dypTdpTdphi_moments[ir][ipt][ipphi][iqt] = new double *** [qnpts];
-					for (int iqx = 0; iqx < qnpts; ++iqx)
-					{
-						dN_dypTdpTdphi_moments[ir][ipt][ipphi][iqt][iqx] = new double ** [qnpts];
-						ln_dN_dypTdpTdphi_moments[ir][ipt][ipphi][iqt][iqx] = new double ** [qnpts];
-						sign_of_dN_dypTdpTdphi_moments[ir][ipt][ipphi][iqt][iqx] = new double ** [qnpts];
-						for (int iqy = 0; iqy < qnpts; ++iqy)
-						{
-							dN_dypTdpTdphi_moments[ir][ipt][ipphi][iqt][iqx][iqy] = new double * [qnpts];
-							ln_dN_dypTdpTdphi_moments[ir][ipt][ipphi][iqt][iqx][iqy] = new double * [qnpts];
-							sign_of_dN_dypTdpTdphi_moments[ir][ipt][ipphi][iqt][iqx][iqy] = new double * [qnpts];
-							for (int iqz = 0; iqz < qnpts; ++iqz)
-							{
-								dN_dypTdpTdphi_moments[ir][ipt][ipphi][iqt][iqx][iqy][iqz] = new double [2];
-								ln_dN_dypTdpTdphi_moments[ir][ipt][ipphi][iqt][iqx][iqy][iqz] = new double [2];
-								sign_of_dN_dypTdpTdphi_moments[ir][ipt][ipphi][iqt][iqx][iqy][iqz] = new double [2];
-								for (int itrig = 0; itrig < 2; ++itrig)
-								{
-									dN_dypTdpTdphi_moments[ir][ipt][ipphi][iqt][iqx][iqy][iqz][itrig] = 0.0;
-									ln_dN_dypTdpTdphi_moments[ir][ipt][ipphi][iqt][iqx][iqy][iqz][itrig] = 0.0;
-									sign_of_dN_dypTdpTdphi_moments[ir][ipt][ipphi][iqt][iqx][iqy][iqz][itrig] = 0.0;
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
 
-	current_resonance_spectra = new double ****** [qnpts];
-	for (int iqt = 0; iqt < qnpts; ++iqt)
+	current_dN_dypTdpTdphi_moments = new double ****** [n_interp_pT_pts];
+	current_ln_dN_dypTdpTdphi_moments = new double ****** [n_interp_pT_pts];
+	current_sign_of_dN_dypTdpTdphi_moments = new double ****** [n_interp_pT_pts];
+	for (int ipt = 0; ipt < n_interp_pT_pts; ++ipt)
 	{
-		current_resonance_spectra[iqt] = new double ***** [qnpts];
-		for (int iqx = 0; iqx < qnpts; ++iqx)
+		current_dN_dypTdpTdphi_moments[ipt] = new double ***** [n_interp_pphi_pts];
+		current_ln_dN_dypTdpTdphi_moments[ipt] = new double ***** [n_interp_pphi_pts];
+		current_sign_of_dN_dypTdpTdphi_moments[ipt] = new double ***** [n_interp_pphi_pts];
+		for (int ipphi = 0; ipphi < n_interp_pphi_pts; ++ipphi)
 		{
-			current_resonance_spectra[iqt][iqx] = new double **** [qnpts];
-			for (int iqy = 0; iqy < qnpts; ++iqy)
+			current_dN_dypTdpTdphi_moments[ipt][ipphi] = new double **** [qnpts];
+			current_ln_dN_dypTdpTdphi_moments[ipt][ipphi] = new double **** [qnpts];
+			current_sign_of_dN_dypTdpTdphi_moments[ipt][ipphi] = new double **** [qnpts];
+			for (int iqt = 0; iqt < qnpts; ++iqt)
 			{
-				current_resonance_spectra[iqt][iqx][iqy] = new double *** [qnpts];
-				for (int iqz = 0; iqz < qnpts; ++iqz)
+				current_dN_dypTdpTdphi_moments[ipt][ipphi][iqt] = new double *** [qnpts];
+				current_ln_dN_dypTdpTdphi_moments[ipt][ipphi][iqt] = new double *** [qnpts];
+				current_sign_of_dN_dypTdpTdphi_moments[ipt][ipphi][iqt] = new double *** [qnpts];
+				for (int iqx = 0; iqx < qnpts; ++iqx)
 				{
-					current_resonance_spectra[iqt][iqx][iqy][iqz] = new double ** [2];
-					for (int itrig = 0; itrig < 2; ++itrig)
+					current_dN_dypTdpTdphi_moments[ipt][ipphi][iqt][iqx] = new double ** [qnpts];
+					current_ln_dN_dypTdpTdphi_moments[ipt][ipphi][iqt][iqx] = new double ** [qnpts];
+					current_sign_of_dN_dypTdpTdphi_moments[ipt][ipphi][iqt][iqx] = new double ** [qnpts];
+					for (int iqy = 0; iqy < qnpts; ++iqy)
 					{
-						current_resonance_spectra[iqt][iqx][iqy][iqz][itrig] = new double * [n_interp_pT_pts];
-						for (int ipt = 0; ipt < n_interp_pT_pts; ++ipt)
+						current_dN_dypTdpTdphi_moments[ipt][ipphi][iqt][iqx][iqy] = new double * [qnpts];
+						current_ln_dN_dypTdpTdphi_moments[ipt][ipphi][iqt][iqx][iqy] = new double * [qnpts];
+						current_sign_of_dN_dypTdpTdphi_moments[ipt][ipphi][iqt][iqx][iqy] = new double * [qnpts];
+						for (int iqz = 0; iqz < qnpts; ++iqz)
 						{
-							current_resonance_spectra[iqt][iqx][iqy][iqz][itrig][ipt] = new double [n_interp_pphi_pts];
-							for (int ipphi = 0; ipphi < n_interp_pphi_pts; ++ipphi)
-								current_resonance_spectra[iqt][iqx][iqy][iqz][itrig][ipt][ipphi] = 0.0;
+							current_dN_dypTdpTdphi_moments[ipt][ipphi][iqt][iqx][iqy][iqz] = new double [2];
+							current_ln_dN_dypTdpTdphi_moments[ipt][ipphi][iqt][iqx][iqy][iqz] = new double [2];
+							current_sign_of_dN_dypTdpTdphi_moments[ipt][ipphi][iqt][iqx][iqy][iqz] = new double [2];
+							for (int itrig = 0; itrig < 2; ++itrig)
+							{
+								current_dN_dypTdpTdphi_moments[ipt][ipphi][iqt][iqx][iqy][iqz][itrig] = 0.0;
+								current_ln_dN_dypTdpTdphi_moments[ipt][ipphi][iqt][iqx][iqy][iqz][itrig] = 0.0;
+								current_sign_of_dN_dypTdpTdphi_moments[ipt][ipphi][iqt][iqx][iqy][iqz][itrig] = 0.0;
+							}
 						}
 					}
 				}
@@ -1019,9 +982,13 @@ void CorrelationFunction::Get_current_decay_string(int dc_idx, string * decay_st
 	return;
 }
 
-int CorrelationFunction::list_daughters(int parent_resonance_index, set<int> * daughter_resonance_indices_ptr, particle_info * particle, int Nparticle)
+int CorrelationFunction::Set_daughter_list(int parent_resonance_index)
 {
-	particle_info parent = particle[parent_resonance_index];
+	// reset list
+	daughter_resonance_indices.clear();
+	
+	// then re-populate it
+	particle_info parent = all_particles[parent_resonance_index];
 	if (parent.stable == 1 && parent.decays_Npart[0] == 1)
 		return (0);									// no daughters to worry about if parent resonance is actually stable
 	int number_of_decays = parent.decays;
@@ -1030,13 +997,13 @@ int CorrelationFunction::list_daughters(int parent_resonance_index, set<int> * d
 		int nb = abs(parent.decays_Npart[k]);		// for each decay, nb is the number of daughter particles
 		for (int l = 0; l < nb; l++)				// loop through each daughter particle
 		{
-			int pid = lookup_particle_id_from_monval(particle, Nparticle, parent.decays_part[k][l]);
-			daughter_resonance_indices_ptr->insert(pid);		// using a <set> object will automatically remove duplicates and keep pid's in a fixed order
+			int pid = lookup_particle_id_from_monval(all_particles, Nparticle, parent.decays_part[k][l]);
+			daughter_resonance_indices.insert(pid);		// using a <set> object will automatically remove duplicates and keep pid's in a fixed order
 		}
 	}
 
 	// return value is total number of daughters found
-	return (daughter_resonance_indices_ptr->size());
+	return (daughter_resonance_indices.size());
 }
 
 int CorrelationFunction::lookup_resonance_idx_from_particle_id(int pid)
@@ -1186,6 +1153,113 @@ void CorrelationFunction::Zero_resonance_running_sum_vector(double * vec)
 {
 	for (int tmp = 0; tmp < qspace_cs_slice_length; ++tmp)
 		vec[tmp] = 0.0;
+}
+
+void CorrelationFunction::Setup_current_daughters_dN_dypTdpTdphi_moments(int n_daughter)
+{
+	current_daughters_dN_dypTdpTdphi_moments = new double ******* [n_daughter];
+	current_daughters_ln_dN_dypTdpTdphi_moments = new double ******* [n_daughter];
+	current_daughters_sign_of_dN_dypTdpTdphi_moments = new double ******* [n_daughter];
+	for (int id = 0; id < n_daughter; ++id)
+	{
+		current_daughters_dN_dypTdpTdphi_moments[id] = new double ****** [n_interp_pT_pts];
+		current_daughters_ln_dN_dypTdpTdphi_moments[id] = new double ****** [n_interp_pT_pts];
+		current_daughters_sign_of_dN_dypTdpTdphi_moments[id] = new double ****** [n_interp_pT_pts];
+		for (int ipt = 0; ipt < n_interp_pT_pts; ++ipt)
+		{
+			current_daughters_dN_dypTdpTdphi_moments[id][ipt] = new double ***** [n_interp_pphi_pts];
+			current_daughters_ln_dN_dypTdpTdphi_moments[id][ipt] = new double ***** [n_interp_pphi_pts];
+			current_daughters_sign_of_dN_dypTdpTdphi_moments[id][ipt] = new double ***** [n_interp_pphi_pts];
+			for (int ipphi = 0; ipphi < n_interp_pphi_pts; ++ipphi)
+			{
+				current_daughters_dN_dypTdpTdphi_moments[id][ipt][ipphi] = new double **** [qnpts];
+				current_daughters_ln_dN_dypTdpTdphi_moments[id][ipt][ipphi] = new double **** [qnpts];
+				current_daughters_sign_of_dN_dypTdpTdphi_moments[id][ipt][ipphi] = new double **** [qnpts];
+				for (int iqt = 0; iqt < qnpts; ++iqt)
+				{
+					current_daughters_dN_dypTdpTdphi_moments[id][ipt][ipphi][iqt] = new double *** [qnpts];
+					current_daughters_ln_dN_dypTdpTdphi_moments[id][ipt][ipphi][iqt] = new double *** [qnpts];
+					current_daughters_sign_of_dN_dypTdpTdphi_moments[id][ipt][ipphi][iqt] = new double *** [qnpts];
+					for (int iqx = 0; iqx < qnpts; ++iqx)
+					{
+						current_daughters_dN_dypTdpTdphi_moments[id][ipt][ipphi][iqt][iqx] = new double ** [qnpts];
+						current_daughters_ln_dN_dypTdpTdphi_moments[id][ipt][ipphi][iqt][iqx] = new double ** [qnpts];
+						current_daughters_sign_of_dN_dypTdpTdphi_moments[id][ipt][ipphi][iqt][iqx] = new double ** [qnpts];
+						for (int iqy = 0; iqy < qnpts; ++iqy)
+						{
+							current_daughters_dN_dypTdpTdphi_moments[id][ipt][ipphi][iqt][iqx][iqy] = new double * [qnpts];
+							current_daughters_ln_dN_dypTdpTdphi_moments[id][ipt][ipphi][iqt][iqx][iqy] = new double * [qnpts];
+							current_daughters_sign_of_dN_dypTdpTdphi_moments[id][ipt][ipphi][iqt][iqx][iqy] = new double * [qnpts];
+							for (int iqz = 0; iqz < qnpts; ++iqz)
+							{
+								current_daughters_dN_dypTdpTdphi_moments[id][ipt][ipphi][iqt][iqx][iqy][iqz] = new double [2];
+								current_daughters_ln_dN_dypTdpTdphi_moments[id][ipt][ipphi][iqt][iqx][iqy][iqz] = new double [2];
+								current_daughters_sign_of_dN_dypTdpTdphi_moments[id][ipt][ipphi][iqt][iqx][iqy][iqz] = new double [2];
+								for (int itrig = 0; itrig < 2; ++itrig)
+								{
+									current_daughters_dN_dypTdpTdphi_moments[id][ipt][ipphi][iqt][iqx][iqy][iqz][itrig] = 0.0;
+									current_daughters_ln_dN_dypTdpTdphi_moments[id][ipt][ipphi][iqt][iqx][iqy][iqz][itrig] = 0.0;
+									current_daughters_sign_of_dN_dypTdpTdphi_moments[id][ipt][ipphi][iqt][iqx][iqy][iqz][itrig] = 0.0;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return;
+}
+
+void CorrelationFunction::Cleanup_current_daughters_dN_dypTdpTdphi_moments(int n_daughter)
+{
+	for (int id = 0; id < n_daughter; ++id)
+	{
+		for(int ipt = 0; ipt < n_interp_pT_pts; ++ipt)
+		{
+			for(int iphi = 0; iphi < n_interp_pphi_pts; ++iphi)
+			{
+				for (int iqt = 0; iqt < qnpts; ++iqt)
+				{
+					for (int iqx = 0; iqx < qnpts; ++iqx)
+					{
+						for (int iqy = 0; iqy < qnpts; ++iqy)
+						{
+							for (int iqz = 0; iqz < qnpts; ++iqz)
+							{
+								delete [] current_daughters_dN_dypTdpTdphi_moments[id][ipt][iphi][iqt][iqx][iqy][iqz];
+								delete [] current_daughters_ln_dN_dypTdpTdphi_moments[id][ipt][iphi][iqt][iqx][iqy][iqz];
+								delete [] current_daughters_sign_of_dN_dypTdpTdphi_moments[id][ipt][iphi][iqt][iqx][iqy][iqz];
+							}
+							delete [] current_daughters_dN_dypTdpTdphi_moments[id][ipt][iphi][iqt][iqx][iqy];
+							delete [] current_daughters_ln_dN_dypTdpTdphi_moments[id][ipt][iphi][iqt][iqx][iqy];
+							delete [] current_daughters_sign_of_dN_dypTdpTdphi_moments[id][ipt][iphi][iqt][iqx][iqy];
+						}
+						delete [] current_daughters_dN_dypTdpTdphi_moments[id][ipt][iphi][iqt][iqx];
+						delete [] current_daughters_ln_dN_dypTdpTdphi_moments[id][ipt][iphi][iqt][iqx];
+						delete [] current_daughters_sign_of_dN_dypTdpTdphi_moments[id][ipt][iphi][iqt][iqx];
+					}
+					delete [] current_daughters_dN_dypTdpTdphi_moments[id][ipt][iphi][iqt];
+					delete [] current_daughters_ln_dN_dypTdpTdphi_moments[id][ipt][iphi][iqt];
+					delete [] current_daughters_sign_of_dN_dypTdpTdphi_moments[id][ipt][iphi][iqt];
+				}
+				delete [] current_daughters_dN_dypTdpTdphi_moments[id][ipt][iphi];
+				delete [] current_daughters_ln_dN_dypTdpTdphi_moments[id][ipt][iphi];
+				delete [] current_daughters_sign_of_dN_dypTdpTdphi_moments[id][ipt][iphi];
+			}
+			delete [] current_daughters_dN_dypTdpTdphi_moments[id][ipt];
+			delete [] current_daughters_ln_dN_dypTdpTdphi_moments[id][ipt];
+			delete [] current_daughters_sign_of_dN_dypTdpTdphi_moments[id][ipt];
+		}
+		delete [] current_daughters_dN_dypTdpTdphi_moments[id];
+		delete [] current_daughters_ln_dN_dypTdpTdphi_moments[id];
+		delete [] current_daughters_sign_of_dN_dypTdpTdphi_moments[id];
+	}
+	delete [] current_daughters_dN_dypTdpTdphi_moments;
+	delete [] current_daughters_ln_dN_dypTdpTdphi_moments;
+	delete [] current_daughters_sign_of_dN_dypTdpTdphi_moments;
+
+	return;
 }
 
 inline double CorrelationFunction::lin_int(double x_m_x1, double one_by_x2_m_x1, double f1, double f2)

@@ -5,6 +5,7 @@
 #include<cmath>
 #include<iomanip>
 #include<vector>
+#include<set>
 #include<stdio.h>
 #include<stdlib.h>
 #include<time.h>
@@ -23,8 +24,6 @@
 #include "Stopwatch.h"
 #include "CPStopwatch.h"
 #include "gauss_quadrature.h"
-
-//#include "H5Cpp.h"
 
 using namespace std;
 
@@ -124,11 +123,13 @@ void CorrelationFunction::Compute_correlation_function(FO_surf* FOsurf_ptr)
 		// if so, set decay channel info
 		// ************************************************************
 		Set_current_particle_info(idc);
+		Load_resonance_and_daughter_spectra(decay_channels[idc-1].resonance_particle_id);
 
 		// ************************************************************
 		// begin source variances calculations here...
 		// ************************************************************
 		Allocate_decay_channel_info();				// allocate needed memory
+
 		for (int idc_DI = 0; idc_DI < current_reso_nbody; ++idc_DI)
 		{
 			int daughter_resonance_particle_id = -1;
@@ -137,6 +138,9 @@ void CorrelationFunction::Compute_correlation_function(FO_surf* FOsurf_ptr)
 			Set_current_daughter_info(idc, idc_DI);
 			Do_resonance_integrals(current_resonance_particle_id, daughter_resonance_particle_id, idc);
 		}
+
+		Update_daughter_spectra();
+
 		Delete_decay_channel_info();				// free up memory
 	}											// END of decay channel loop
 
@@ -156,17 +160,7 @@ bool CorrelationFunction::Do_this_decay_channel(int dc_idx)
 		local_name = decay_channels[dc_idx-1].resonance_name;
 		Get_current_decay_string(dc_idx, &current_decay_channel_string);
 	}
-	//if (DO_ALL_DECAY_CHANNELS)
-	//	return true;
-	//else if (decay_channels[dc_idx-1].include_channel)
-	if (decay_channels[dc_idx-1].include_channel)
-	{
-		;
-	}
-	else
-	{
-		if (VERBOSE > 0) *global_out_stream_ptr << endl << local_name << ": skipping decay " << current_decay_channel_string << "." << endl;
-	}
+	if (VERBOSE > 0) *global_out_stream_ptr << endl << local_name << ": skipping decay " << current_decay_channel_string << "." << endl;
 
 	return (decay_channels[dc_idx-1].include_channel);
 }
@@ -442,25 +436,100 @@ bool CorrelationFunction::particles_are_the_same(int reso_idx1, int reso_idx2)
 
 void CorrelationFunction::Recycle_spacetime_moments()
 {
-	for(int ipt = 0; ipt < n_interp_pT_pts; ++ipt)
-	for(int iphi = 0; iphi < n_interp_pphi_pts; ++iphi)
+	int HDFcopyChunkSuccess = Copy_chunk(current_resonance_particle_id, reso_particle_id_of_moments_to_recycle);
+
+	return;
+}
+
+//**************************************************************
+//**************************************************************
+void CorrelationFunction::Load_resonance_and_daughter_spectra(int local_pid)
+{
+	// get parent resonance spectra, set logs and signs arrays that are needed for interpolation
+	Get_resonance_from_HDF_array(local_pid, current_dN_dypTdpTdphi_moments);
+	Set_current_resonance_logs_and_signs();
+
+	// get spectra for all daughters, set all of the logs and signs arrays that are needed for interpolation
+	int n_daughters = Set_daughter_list(local_pid);
+
+	if (n_daughters > 0)
+	{
+		int d_idx = 0;
+
+		Setup_current_daughters_dN_dypTdpTdphi_moments(n_daughters);
+
+		for (set<int>::iterator it = daughter_resonance_indices.begin(); it != daughter_resonance_indices.end(); ++it)
+		{
+			int daughter_pid = *it;		//daughter pid is pointed to by iterator
+			Get_resonance_from_HDF_array(daughter_pid, current_daughters_dN_dypTdpTdphi_moments[d_idx]);
+			++d_idx;
+		}
+	
+		Set_current_daughters_resonance_logs_and_signs(n_daughters);
+	}
+	else
+	{
+		cerr << "Particle is stable, shouldn't have ended up here!  Something went wrong..." << endl;
+		exit;
+	}
+
+	return;
+}
+
+void CorrelationFunction::Update_daughter_spectra()
+{
+	int d_idx = 0;
+	for (set<int>::iterator it = daughter_resonance_indices.begin(); it != daughter_resonance_indices.end(); ++it)
+	{
+		int daughter_pid = *it;		//daughter pid is pointed to by iterator
+		Set_resonance_in_HDF_array(daughter_pid, current_daughters_dN_dypTdpTdphi_moments[d_idx]);
+		++d_idx;
+	}
+
+	// cleanup previous iteration and setup the new one
+	Cleanup_current_daughters_dN_dypTdpTdphi_moments(daughter_resonance_indices.size());
+
+	return;
+}
+
+void CorrelationFunction::Set_current_resonance_logs_and_signs()
+{
+	for (int ipt = 0; ipt < n_interp_pT_pts; ++ipt)
+	for (int iphi = 0; iphi < n_interp_pphi_pts; ++iphi)
 	for (int iqt = 0; iqt < qnpts; ++iqt)
 	for (int iqx = 0; iqx < qnpts; ++iqx)
 	for (int iqy = 0; iqy < qnpts; ++iqy)
 	for (int iqz = 0; iqz < qnpts; ++iqz)
 	for (int itrig = 0; itrig < 2; ++itrig)
 	{
-		dN_dypTdpTdphi_moments[current_resonance_particle_id][ipt][iphi][iqt][iqx][iqy][iqz][itrig]
-				= dN_dypTdpTdphi_moments[reso_particle_id_of_moments_to_recycle][ipt][iphi][iqt][iqx][iqy][iqz][itrig];
-		ln_dN_dypTdpTdphi_moments[current_resonance_particle_id][ipt][iphi][iqt][iqx][iqy][iqz][itrig]
-				= ln_dN_dypTdpTdphi_moments[reso_particle_id_of_moments_to_recycle][ipt][iphi][iqt][iqx][iqy][iqz][itrig];
-		sign_of_dN_dypTdpTdphi_moments[current_resonance_particle_id][ipt][iphi][iqt][iqx][iqy][iqz][itrig]
-				= sign_of_dN_dypTdpTdphi_moments[reso_particle_id_of_moments_to_recycle][ipt][iphi][iqt][iqx][iqy][iqz][itrig];
+		double temp = current_dN_dypTdpTdphi_moments[ipt][iphi][iqt][iqx][iqy][iqz][itrig];
+		current_ln_dN_dypTdpTdphi_moments[ipt][iphi][iqt][iqx][iqy][iqz][itrig] = log(abs(temp)+1.e-100);
+		current_sign_of_dN_dypTdpTdphi_moments[ipt][iphi][iqt][iqx][iqy][iqz][itrig] = sgn(temp);
 	}
-
 
 	return;
 }
+
+void CorrelationFunction::Set_current_daughters_resonance_logs_and_signs(int n_daughters)
+{
+	for (int idaughter = 0; idaughter < n_daughters; ++idaughter)
+	for (int ipt = 0; ipt < n_interp_pT_pts; ++ipt)
+	for (int iphi = 0; iphi < n_interp_pphi_pts; ++iphi)
+	for (int iqt = 0; iqt < qnpts; ++iqt)
+	for (int iqx = 0; iqx < qnpts; ++iqx)
+	for (int iqy = 0; iqy < qnpts; ++iqy)
+	for (int iqz = 0; iqz < qnpts; ++iqz)
+	for (int itrig = 0; itrig < 2; ++itrig)
+	{
+		double temp = current_daughters_dN_dypTdpTdphi_moments[idaughter][ipt][iphi][iqt][iqx][iqy][iqz][itrig];
+		current_daughters_ln_dN_dypTdpTdphi_moments[idaughter][ipt][iphi][iqt][iqx][iqy][iqz][itrig] = log(abs(temp)+1.e-100);
+		current_daughters_sign_of_dN_dypTdpTdphi_moments[idaughter][ipt][iphi][iqt][iqx][iqy][iqz][itrig] = sgn(temp);
+	}
+
+	return;
+}
+//**************************************************************
+//**************************************************************
 
 void CorrelationFunction::Get_spacetime_moments(FO_surf* FOsurf_ptr, int dc_idx)
 {
@@ -1079,10 +1148,17 @@ debug_sw.Start();
 	for (int itrig = 0; itrig < ntrig; ++itrig)
 	{
 		double temp = temp_moms_linear_array[iidx];
-		dN_dypTdpTdphi_moments[local_pid][ipt][iphi][iqt][iqx][iqy][iqz][itrig] = temp;
-		ln_dN_dypTdpTdphi_moments[local_pid][ipt][iphi][iqt][iqx][iqy][iqz][itrig] = log(abs(temp)+1.e-100);
-		sign_of_dN_dypTdpTdphi_moments[local_pid][ipt][iphi][iqt][iqx][iqy][iqz][itrig] = sgn(temp);
+		current_dN_dypTdpTdphi_moments[ipt][iphi][iqt][iqx][iqy][iqz][itrig] = temp;
+		//current_ln_dN_dypTdpTdphi_moments[ipt][iphi][iqt][iqx][iqy][iqz][itrig] = log(abs(temp)+1.e-100);
+		//current_sign_of_dN_dypTdpTdphi_moments[ipt][iphi][iqt][iqx][iqy][iqz][itrig] = sgn(temp);
 		++iidx;
+	}
+
+	int setHDFresonanceSpectra = Set_resonance_in_HDF_array(local_pid, current_dN_dypTdpTdphi_moments);
+	if (setHDFresonanceSpectra < 0)
+	{
+		cerr << "Failed to initialize HDF array of resonances!  Exiting..." << endl;
+		exit;
 	}
 
 	delete [] temp_moms_linear_array;
@@ -1094,165 +1170,6 @@ debug_sw.Stop();
 
 	return;
 }
-
-/*void CorrelationFunction::Cal_dN_dypTdpTdphi_with_weights_with_HDF(FO_surf* FOsurf_ptr, int local_pid, double cutoff)
-{
-	CPStopwatch debug_sw, debug_sw2;
-	debug_sw.Start();
-
-	int ntrig = 2;
-	int temp_moms_lin_arr_length = n_interp_pT_pts * n_interp_pphi_pts * qnpts * qnpts * qnpts * qnpts * ntrig;
-	int lin_TAA_length = eta_s_npts * qnpts * qnpts * qnpts * qnpts * ntrig;
-	int FT_loop_length = qnpts * qnpts * qnpts * qnpts * ntrig;
-
-	double * temp_moms_linear_array = new double [temp_moms_lin_arr_length];
-	for (int i = 0; i < temp_moms_lin_arr_length; ++i)
-		temp_moms_linear_array[i] = 0.0;
-
-	// set particle information
-	double sign = all_particles[local_pid].sign;
-	double degen = all_particles[local_pid].gspin;
-	double localmass = all_particles[local_pid].mass;
-	double mu = all_particles[local_pid].mu;
-
-	// set some freeze-out surface information that's constant the whole time
-	double prefactor = 1.0*degen/(8.0*M_PI*M_PI*M_PI)/(hbarC*hbarC*hbarC);
-	double Tdec = (&FOsurf_ptr[0])->Tdec;
-	double Pdec = (&FOsurf_ptr[0])->Pdec;
-	double Edec = (&FOsurf_ptr[0])->Edec;
-	double one_by_Tdec = 1./Tdec;
-	double deltaf_prefactor = 0.;
-	if (use_delta_f)
-		deltaf_prefactor = 1./(2.0*Tdec*Tdec*(Edec+Pdec));
-
-	double eta_s_symmetry_factor = 2.0;
-
-	int lin_TMLAL_idx = 0, lin_TAA_idx = 0;
-
-	double small_array[1][lin_TAA_length];
-	//double flattened_small_array[lin_TAA_length];
-	for (int ii = 0; ii < lin_TAA_length; ++ii)
-		small_array[0][ii] = 0.0;
-
-	int HDFsuccess = Set_giant_chunked_HDF_array();
-	if (HDFsuccess < 0)
-	{
-		cerr << "Failed to set HDF5 array!  Exiting..." << endl;
-		exit;
-	}
-
-	for (int ipt = 0; ipt < n_interp_pT_pts; ++ipt)
-	{
-		if (ipt > 0) continue;
-		double pT = SPinterp_pT[ipt];
-		double * p0_pTslice = SPinterp_p0[ipt];
-		double * pz_pTslice = SPinterp_pz[ipt];
-
-		int HDFsuccess2 = Reset_HDF();
-
-		for (int iphi = 0; iphi < n_interp_pphi_pts; ++iphi)
-		{
-			debug_sw2.Reset();
-			if (iphi > 0) continue;
-			*global_out_stream_ptr << "Doing pT = " << pT << ", pphi = " << SPinterp_pphi[iphi] << "..." << endl
-					<< "with cutoff = " << cutoff << " and # of FOCells above cutoff = " << number_of_FOcells_above_cutoff_array[ipt][iphi] << endl;
-			int ptphi_index = ipt * n_interp_pphi_pts + iphi;
-			size_t * most_important_FOcells_for_current_pt_and_pphi = most_important_FOcells[ipt][iphi];
-			double running_sum = 0.0, correct_running_sum = 0.0;
-
-			double ** weighted_S_pt_pphi_array = weighted_S_p_array[ipt][iphi];
-
-			for (int index = 0; index < FO_length; ++index)
-			{
-				if (running_sum >= cutoff)
-				{
-					*global_out_stream_ptr << "   --> Convergence reached at index == " << index << "/" << FO_length << "!" << endl
-											<< "   --> Finished with " << 100.*running_sum << "% of integrals completed!" << endl;
-					//break;
-				}
-				else if (index >= number_of_FOcells_above_cutoff_array[ipt][iphi])
-				{
-					*global_out_stream_ptr << "WARNING: you didn't choose large enough number of partial ordered FO cells!" << endl
-											<< "   --> quit with only " << 100.*running_sum << "% < " << 100.*cutoff << "% of integrals completed!" << endl;
-					//break;
-				}
-
-				int isurf = most_important_FOcells_for_current_pt_and_pphi[index];
-
-				int HDFsuccess3 = Get_chunk(isurf, small_array);
-				//for (int isa = 0; isa < lin_TAA_length; ++isa)
-				//	flattened_small_array[isa] = small_array[0][isa];
-				if (HDFsuccess3 < 0)
-				{
-					cerr << "Failed to access HDF5 array!  Exiting..." << endl;
-					exit;
-				}
-
-				lin_TAA_idx = 0;
-
-				double temp_running_sum = 0.0;
-				for(int ieta = 0; ieta < eta_s_npts; ++ieta)
-				{
-					//double S_p_withweight = weighted_S_pt_pphi_array[isurf][ieta];
-					double S_p_withweight = weighted_S_p_array[ipt][iphi][isurf][ieta];
-					if (S_p_withweight < tol)
-					{
-						lin_TAA_idx += FT_loop_length;
-						continue;
-					}
-
-					lin_TMLAL_idx = ptphi_index * FT_loop_length;
-
-					for (int iqt = 0; iqt < qnpts; ++iqt)
-					for (int iqx = 0; iqx < qnpts; ++iqx)
-					for (int iqy = 0; iqy < qnpts; ++iqy)
-					for (int iqz = 0; iqz < qnpts; ++iqz)
-					for (int itrig = 0; itrig < ntrig; ++itrig)
-					{
-						// notice carefully worked index math to speed up calculations...
-						//temp_moms_linear_array[lin_TMLAL_idx] += flattened_small_array[lin_TAA_idx] * S_p_withweight;
-						temp_moms_linear_array[lin_TMLAL_idx] += small_array[0][lin_TAA_idx] * S_p_withweight;	//small_array is 2 (cos) or 0 (sin) at q=0
-						++lin_TAA_idx;
-						++lin_TMLAL_idx;
-					}
-					temp_running_sum += eta_s_symmetry_factor*S_p_withweight;		//gives eta_s-integrated values
-				}
-				running_sum += abs(temp_running_sum) / abs_spectra[local_pid][ipt][iphi];
-				correct_running_sum += temp_running_sum / spectra[local_pid][ipt][iphi];
-			}
-			delete [] most_important_FOcells_for_current_pt_and_pphi;
-			debug_sw2.Stop();
-			*global_out_stream_ptr << "   --> Took " << debug_sw2.printTime() << " seconds for pT = " << pT << ", pphi = " << SPinterp_pphi[iphi] << "." << endl;
-		}
-	}
-
-	int iidx = 0;
-	for (int ipt = 0; ipt < n_interp_pT_pts; ++ipt)
-	for (int iphi = 0; iphi < n_interp_pphi_pts; ++iphi)
-	for (int iqt = 0; iqt < qnpts; ++iqt)
-	for (int iqx = 0; iqx < qnpts; ++iqx)
-	for (int iqy = 0; iqy < qnpts; ++iqy)
-	for (int iqz = 0; iqz < qnpts; ++iqz)
-	for (int itrig = 0; itrig < ntrig; ++itrig)
-	{
-		double temp = temp_moms_linear_array[iidx];
-		dN_dypTdpTdphi_moments[local_pid][ipt][iphi][iqt][iqx][iqy][iqz][itrig] = temp;
-		ln_dN_dypTdpTdphi_moments[local_pid][ipt][iphi][iqt][iqx][iqy][iqz][itrig] = log(abs(temp)+1.e-100);
-		sign_of_dN_dypTdpTdphi_moments[local_pid][ipt][iphi][iqt][iqx][iqy][iqz][itrig] = sgn(temp);
-		++iidx;
-	}
-
-	// Clean up
-	delete [] temp_moms_linear_array;
-	delete [] giant_array;
-
-	Clean_up_HDF_miscellany();
-
-	debug_sw.Stop();
-	*global_out_stream_ptr << "Total function call took " << debug_sw.printTime() << " seconds." << endl;
-
-	return;
-}*/
 
 void CorrelationFunction::Cal_dN_dypTdpTdphi_with_weights_with_HDF(FO_surf* FOsurf_ptr, int local_pid, double cutoff)
 {
@@ -1431,19 +1348,18 @@ void CorrelationFunction::Cal_dN_dypTdpTdphi_with_weights_with_HDF(FO_surf* FOsu
 	for (int itrig = 0; itrig < ntrig; ++itrig)
 	{
 		double temp = temp_moms_linear_array[iidx];
-		dN_dypTdpTdphi_moments[local_pid][ipt][iphi][iqt][iqx][iqy][iqz][itrig] = temp;
-		ln_dN_dypTdpTdphi_moments[local_pid][ipt][iphi][iqt][iqx][iqy][iqz][itrig] = log(abs(temp)+1.e-100);
-		sign_of_dN_dypTdpTdphi_moments[local_pid][ipt][iphi][iqt][iqx][iqy][iqz][itrig] = sgn(temp);
+		current_dN_dypTdpTdphi_moments[ipt][iphi][iqt][iqx][iqy][iqz][itrig] = temp;
+		//current_ln_dN_dypTdpTdphi_moments[ipt][iphi][iqt][iqx][iqy][iqz][itrig] = log(abs(temp)+1.e-100);
+		//current_sign_of_dN_dypTdpTdphi_moments[ipt][iphi][iqt][iqx][iqy][iqz][itrig] = sgn(temp);
 		++iidx;
 	}
 
-	int setHDFresonanceSpectra = Set_resonance_in_HDF_array(local_pid, dN_dypTdpTdphi_moments[local_pid]);
+	int setHDFresonanceSpectra = Set_resonance_in_HDF_array(local_pid, current_dN_dypTdpTdphi_moments);
 	if (setHDFresonanceSpectra < 0)
 	{
 		cerr << "Failed to initialize HDF array of resonances!  Exiting..." << endl;
 		exit;
 	}
-
 
 	// Clean up
 	delete [] temp_moms_linear_array;

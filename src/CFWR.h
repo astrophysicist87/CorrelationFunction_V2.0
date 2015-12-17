@@ -99,10 +99,6 @@ class CorrelationFunction
 		double previous_resonance_total_br, previous_resonance_direct_br, previous_daughter_mass, previous_daughter_Gamma;
 		double * previous_resonance_decay_masses;
 
-		// array to hold (weighted) spectra of current resonance and its daughter particles
-		double ******* current_resonance_spectra, ******** current_resonance_daughter_spectra;
-		//double **** weighted_S_p_array;
-
 		//*************************************************************
 		//freeze-out surface interpolation arrays (prefix: "FOI_"), etc...
 		int FOI_np0pts, FOI_npTpts, FOI_npphipts, FOI_npzpts, FOI_nmupts; 
@@ -113,9 +109,12 @@ class CorrelationFunction
 		//*************************************************************
 		
 		//arrays to hold results of resonance phase-space integrations
-		double ******** dN_dypTdpTdphi_moments;
-		double ******** ln_dN_dypTdpTdphi_moments;
-		double ******** sign_of_dN_dypTdpTdphi_moments;
+		double ******* current_dN_dypTdpTdphi_moments;
+		double ******* current_ln_dN_dypTdpTdphi_moments;
+		double ******* current_sign_of_dN_dypTdpTdphi_moments;
+		double ******** current_daughters_dN_dypTdpTdphi_moments;
+		double ******** current_daughters_ln_dN_dypTdpTdphi_moments;
+		double ******** current_daughters_sign_of_dN_dypTdpTdphi_moments;
 
 		// needed these to avoid too many trigonometric evaluations
 		double **** osc0, *** osc1, *** osc2, **** osc3;
@@ -227,6 +226,7 @@ class CorrelationFunction
 		string no_df_stem;
 		int n_resonance, n_decay_channels;
 		int n_body;
+		set<int> daughter_resonance_indices;
 
 		//some private methods		
 		bool particles_are_the_same(int idx1, int idx2);
@@ -249,6 +249,7 @@ class CorrelationFunction
 		int Get_resonance_from_HDF_array(int local_pid, double ******* resonance_array_to_fill);
 		int Set_resonance_in_HDF_array(int local_pid, double ******* resonance_array_to_use);
 		int Initialize_resonance_HDF_array();
+		int Copy_chunk(int current_resonance_index, int reso_idx_to_be_copied);
 
 		void Set_giant_array();
 		void addElementToQueue(priority_queue<pair<double, size_t> >& p, pair<double, size_t> elem, size_t max_size);
@@ -261,7 +262,7 @@ class CorrelationFunction
 		void Cal_dN_dypTdpTdphi_with_weights_with_HDF(FO_surf* FOsurf_ptr, int local_pid, double cutoff);
 		double Cal_dN_dypTdpTdphi_function(FO_surf* FOsurf_ptr, int local_pid, double pT, double pphi);
 		void Do_resonance_integrals(int iKT, int iKphi, int dc_idx);
-		void Flatten_dN_dypTdpTdphi_moments(int parent_resonance_particle_id);
+		void Flatten_dN_dypTdpTdphi_moments();
 		void get_rapidity_dependence(double * rap_indep_vector, double * rap_dep_vector, double rap_val);
 		void combine_sourcevariances(double * output, double * input, double * alpha_vec);
 		void Set_current_daughter_info(int dc_idx, int daughter_idx);
@@ -270,10 +271,15 @@ class CorrelationFunction
 		bool Do_this_daughter_particle(int dc_idx, int daughter_idx, int * daughter_resonance_pid);
 		void Get_spacetime_moments(FO_surf* FOsurf_ptr, int dc_idx);
 		void Recycle_spacetime_moments();
+		void Load_resonance_and_daughter_spectra(int local_pid);
+		void Update_daughter_spectra();
+		void Set_current_resonance_logs_and_signs();
+		void Set_current_daughters_resonance_logs_and_signs(int n_daughters);
 		void Allocate_decay_channel_info();
 		void Load_decay_channel_info(int dc_idx, double K_T_local, double K_phi_local);
 		void Delete_decay_channel_info();
 		void Compute_source_variances(int iKT, int iKphi);
+		int Set_daughter_list(int parent_resonance_index);
 
 		void form_trig_sign_z(int isurf, int ieta, int iqt, int iqx, int iqy, int iqz, int ii, double * results);
 
@@ -310,6 +316,8 @@ class CorrelationFunction
 		void Zero_resonance_running_sum_vector(double * vec);
 		void Setup_temp_arrays(double ***** local_temp_moments, double ******* temp_moments_array);
 		void Teardown_temp_arrays(double ***** local_temp_moments, double ******* temp_moments_array);
+		void Setup_current_daughters_dN_dypTdpTdphi_moments(int n_daughter);
+		void Cleanup_current_daughters_dN_dypTdpTdphi_moments(int n_daughter);
 
 		// Gaussian fit / correlation function routines
 		void Get_GF_HBTradii(FO_surf* FOsurf_ptr, int folderindex);

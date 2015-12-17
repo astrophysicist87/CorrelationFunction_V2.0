@@ -241,6 +241,8 @@ void CorrelationFunction::Output_total_target_eiqx_dN_dypTdpTdphi(int folderinde
 	filename_stream_target_dN_dypTdpTdphi << global_path << "/total_" << local_name << "_eiqx_dN_dypTdpTdphi_ev" << folderindex << no_df_stem << ".dat";
 	ofstream output_target_dN_dypTdpTdphi(filename_stream_target_dN_dypTdpTdphi.str().c_str());
 
+	int HDFloadTargetSuccess = Get_resonance_from_HDF_array(target_particle_id, current_dN_dypTdpTdphi_moments);
+
 	for (int iqt = 0; iqt < qnpts; ++iqt)
 	for (int iqx = 0; iqx < qnpts; ++iqx)
 	for (int iqy = 0; iqy < qnpts; ++iqy)
@@ -250,12 +252,12 @@ void CorrelationFunction::Output_total_target_eiqx_dN_dypTdpTdphi(int folderinde
 	{
 		// addresses NaN issue in sin component when all q^{\mu} == 0
 		if (sqrt(qt_pts[iqt]*qt_pts[iqt]+qx_pts[iqx]*qx_pts[iqx]+qy_pts[iqy]*qy_pts[iqy]+qz_pts[iqz]*qz_pts[iqz]) < 1.e-12)
-			dN_dypTdpTdphi_moments[target_particle_id][ipt][ipphi][iqt][iqx][iqy][iqz][1] = 0.0;
+			current_dN_dypTdpTdphi_moments[ipt][ipphi][iqt][iqx][iqy][iqz][1] = 0.0;
 
 		// output all FT'd spectra
 		double nonFTd_spectra = spectra[target_particle_id][ipt][ipphi];
-		double cos_transf_spectra = dN_dypTdpTdphi_moments[target_particle_id][ipt][ipphi][iqt][iqx][iqy][iqz][0];
-		double sin_transf_spectra = dN_dypTdpTdphi_moments[target_particle_id][ipt][ipphi][iqt][iqx][iqy][iqz][1];
+		double cos_transf_spectra = current_dN_dypTdpTdphi_moments[ipt][ipphi][iqt][iqx][iqy][iqz][0];
+		double sin_transf_spectra = current_dN_dypTdpTdphi_moments[ipt][ipphi][iqt][iqx][iqy][iqz][1];
 		output_target_dN_dypTdpTdphi << scientific << setprecision(8) << setw(12)
 			<< qt_pts[iqt] << "   " << qx_pts[iqx] << "   " << qy_pts[iqy] << "   " << qz_pts[iqz] << "   "
 			<< SPinterp_pT[ipt] << "   " << SPinterp_pphi[ipphi] << "   " << cos_transf_spectra << "   " << sin_transf_spectra << "   "

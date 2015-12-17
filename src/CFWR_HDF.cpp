@@ -632,4 +632,59 @@ int CorrelationFunction::Set_resonance_in_HDF_array(int local_pid, double ******
 	return (0);
 }
 
+int CorrelationFunction::Copy_chunk(int current_resonance_index, int reso_idx_to_be_copied)
+{
+	const int resonance_array_rank = 1;
+	const int resonance_array_size = Nparticle * n_interp_pT_pts * n_interp_pphi_pts * qnpts * qnpts * qnpts * qnpts * ntrig;
+	const int chunk_size = n_interp_pT_pts * n_interp_pphi_pts * qnpts * qnpts * qnpts * qnpts * ntrig;
+	double * resonance_chunk = new double [chunk_size];
+
+	ostringstream filename_stream_ra;
+	filename_stream_ra << global_path << "/resonance_spectra.h5";
+	H5std_string RESONANCE_FILE_NAME(filename_stream_ra.str().c_str());
+	H5std_string RESONANCE_DATASET_NAME("ra");
+
+	try
+    {
+		Exception::dontPrint();
+	
+		hsize_t offset[resonance_array_rank] = {reso_idx_to_be_copied * chunk_size};
+		hsize_t count[resonance_array_rank] = {chunk_size};
+		resonance_dataspace->selectHyperslab(H5S_SELECT_SET, count, offset);
+
+		// load resonance to be copied first
+		resonance_dataset->read(resonance_chunk, PredType::NATIVE_DOUBLE, *resonance_memspace, *resonance_dataspace);
+
+		// now set this to current resonance
+		offset[0] = current_resonance_index * chunk_size;
+		resonance_dataspace->selectHyperslab(H5S_SELECT_SET, count, offset);
+		resonance_dataset->write(resonance_chunk, PredType::NATIVE_DOUBLE, *resonance_memspace, *resonance_dataspace);
+   }
+
+    catch(FileIException error)
+    {
+		error.printError();
+		cerr << "FileIException error!" << endl;
+		return -1;
+    }
+
+    catch(H5::DataSetIException error)
+    {
+		error.printError();
+		cerr << "H5::DataSetIException error!" << endl;
+		return -2;
+    }
+
+    catch(H5::DataSpaceIException error)
+    {
+		error.printError();
+		cerr << "H5::DataSpaceIException error!" << endl;
+		return -3;
+    }
+
+	delete [] resonance_chunk;
+
+	return (0);
+}
+
 //End of file

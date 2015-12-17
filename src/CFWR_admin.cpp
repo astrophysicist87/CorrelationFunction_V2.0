@@ -8,6 +8,7 @@
 #include<stdio.h>
 #include<time.h>
 #include<algorithm>
+#include <set>
 
 #include<gsl/gsl_sf_bessel.h>
 #include <gsl/gsl_errno.h>
@@ -667,7 +668,7 @@ void CorrelationFunction::Update_sourcefunction(particle_info* particle, int FOa
 	}
 
 
-	weighted_S_p_array = new double *** [n_interp_pT_pts];
+	/*weighted_S_p_array = new double *** [n_interp_pT_pts];
 	for (int ipt = 0; ipt < n_interp_pT_pts; ++ipt)
 	{
 		weighted_S_p_array[ipt] = new double ** [n_interp_pphi_pts];
@@ -681,7 +682,7 @@ void CorrelationFunction::Update_sourcefunction(particle_info* particle, int FOa
 					weighted_S_p_array[ipt][ipphi][isurf][ieta] = 0.0;
 			}
 		}
-	}
+	}*/
 
    //particle information
    particle_name = particle->name;
@@ -1016,6 +1017,26 @@ void CorrelationFunction::Get_current_decay_string(int dc_idx, string * decay_st
 		}
 	}
 	return;
+}
+
+int CorrelationFunction::list_daughters(int parent_resonance_index, set<int> * daughter_resonance_indices_ptr, particle_info * particle, int Nparticle)
+{
+	particle_info parent = particle[parent_resonance_index];
+	if (parent.stable == 1 && parent.decays_Npart[0] == 1)
+		return (0);									// no daughters to worry about if parent resonance is actually stable
+	int number_of_decays = parent.decays;
+	for (int k = 0; k < number_of_decays; k++)		// loop through decays for parent resonance
+	{
+		int nb = abs(parent.decays_Npart[k]);		// for each decay, nb is the number of daughter particles
+		for (int l = 0; l < nb; l++)				// loop through each daughter particle
+		{
+			int pid = lookup_particle_id_from_monval(particle, Nparticle, parent.decays_part[k][l]);
+			daughter_resonance_indices_ptr->insert(pid);		// using a <set> object will automatically remove duplicates and keep pid's in a fixed order
+		}
+	}
+
+	// return value is total number of daughters found
+	return (daughter_resonance_indices_ptr->size());
 }
 
 int CorrelationFunction::lookup_resonance_idx_from_particle_id(int pid)

@@ -9,6 +9,7 @@
 #include<string>
 #include<fstream>
 #include<vector>
+#include<set>
 #include<queue>
 
 #include<gsl/gsl_sf_bessel.h>
@@ -20,10 +21,6 @@
 #include <gsl/gsl_multifit_nlin.h>  // gsl multidimensional fitting
 
 #include "H5Cpp.h"
-
-//#ifndef H5_NO_NAMESPACE
-//    using namespace H5;
-//#endif
 
 #include "readindata.h"
 #include "parameters.h"
@@ -104,7 +101,7 @@ class CorrelationFunction
 
 		// array to hold (weighted) spectra of current resonance and its daughter particles
 		double ******* current_resonance_spectra, ******** current_resonance_daughter_spectra;
-		double **** weighted_S_p_array;
+		//double **** weighted_S_p_array;
 
 		//*************************************************************
 		//freeze-out surface interpolation arrays (prefix: "FOI_"), etc...
@@ -195,7 +192,7 @@ class CorrelationFunction
 		int Emissionfunction_length;
 		
 		double *** spectra, *** abs_spectra;
-        	double **** CFvals;
+		double **** CFvals;
 		
 		double * q_out, * q_side, * q_long, * q_pts, * q_axes, * qt_pts, * qx_pts, * qy_pts, * qz_pts;
 		
@@ -245,9 +242,13 @@ class CorrelationFunction
 		int Set_giant_HDF_array();
 		int Get_small_array_from_giant_HDF_array(int isurf, int ieta, double * small_array);
 		int Set_giant_chunked_HDF_array();
-		int Get_chunk(int isurf, double small_array[][eta_s_npts * qnpts * qnpts * qnpts * qnpts * 2]);
+		//int Get_chunk(int isurf, double small_array[][eta_s_npts * qnpts * qnpts * qnpts * qnpts * 2]);	//RANKV2 version
+		int Get_chunk(int isurf, double * small_array);
 		int Clean_up_HDF_miscellany();
 		int Reset_HDF();
+		int Get_resonance_from_HDF_array(int local_pid, double ******* resonance_array_to_fill);
+		int Set_resonance_in_HDF_array(int local_pid, double ******* resonance_array_to_use);
+		int Initialize_resonance_HDF_array();
 
 		void Set_giant_array();
 		void addElementToQueue(priority_queue<pair<double, size_t> >& p, pair<double, size_t> elem, size_t max_size);
@@ -300,6 +301,7 @@ class CorrelationFunction
 		double place_in_range(double phi, double min, double max);
 		void Get_current_decay_string(int dc_idx, string * decay_string);
 		int lookup_resonance_idx_from_particle_id(int particle_id);
+		int list_daughters(int parent_resonance_index, set<int> * daughter_resonance_indices_ptr, particle_info * particle, int Nparticle);
 		static inline double lin_int(double x_m_x1, double one_by_x2_m_x1, double f1, double f2);
 		void Edndp3(double ptr, double phir, double * results);
 		void Set_q_points();
@@ -344,6 +346,9 @@ class CorrelationFunction
 		H5::DataSpace * dataspace, * memspace;
 		H5::H5File * file;
 		H5::DataSet * dataset;
+		H5::DataSpace * resonance_dataspace, * resonance_memspace;
+		H5::H5File * resonance_file;
+		H5::DataSet * resonance_dataset;
 
 		CorrelationFunction(particle_info* particle, particle_info* all_particles_in, int Nparticle,
 				FO_surf* FOsurf_ptr, vector<int> chosen_resonances, int particle_idx, ofstream& myout);

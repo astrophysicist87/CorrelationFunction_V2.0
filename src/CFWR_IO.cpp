@@ -255,7 +255,7 @@ void CorrelationFunction::Output_total_target_eiqx_dN_dypTdpTdphi(int folderinde
 			current_dN_dypTdpTdphi_moments[ipt][ipphi][iqt][iqx][iqy][iqz][1] = 0.0;
 
 		// output all FT'd spectra
-		double nonFTd_spectra = spectra[target_particle_id][ipt][ipphi];
+		double nonFTd_spectra = spectra[target_particle_id][ipt][ipphi] / fraction_of_resonances;
 		double cos_transf_spectra = current_dN_dypTdpTdphi_moments[ipt][ipphi][iqt][iqx][iqy][iqz][0];
 		double sin_transf_spectra = current_dN_dypTdpTdphi_moments[ipt][ipphi][iqt][iqx][iqy][iqz][1];
 		output_target_dN_dypTdpTdphi << scientific << setprecision(8) << setw(12)

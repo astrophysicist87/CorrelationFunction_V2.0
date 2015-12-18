@@ -770,10 +770,6 @@ sw2.Start();
 			for (int ii = 0; ii < iFOcell; ++ii)
 				FOcells[iFOcell] /= tempabssum;
 			vector<size_t> indices = partial_ordered(FOcells, number_of_FOcells_above_cutoff_array[ipt][iphi], 1);
-			// use full ordering of vectors for now (might be a little slow, could be accelerated...)
-			//most_important_FOcells[ipt][iphi] = &(ordered(FOcells, 1))[0];		// "1" in second index sorts into decreasing, not increasing, value
-																			// "true" in third index means sort by absolute values
-			//vector<size_t> indices = ordered(FOcells, 1);
 			copy(indices.begin(), indices.end(), most_important_FOcells[ipt][iphi]);
 			sw3.Stop();
 			temp_moments_array[ipt][iphi] = tempsum;
@@ -871,7 +867,6 @@ sw2.Start();
 			number_of_FOcells_above_cutoff_array[ipt][iphi] = floor(cutoff * FO_length);
 
 			double tempsum = 0.0, tempabssum = 0.0;
-			//double ** weighted_S_pt_pphi_array = weighted_S_p_array[ipt][iphi];
 
 			int iFOcell = 0;
 			priority_queue<pair<double, size_t> > FOcells_PQ;
@@ -925,8 +920,6 @@ sw2.Start();
 					}
 
 					double S_p_withweight = S_p*tau*eta_s_weight[ieta];		//don't include eta_s_symmetry_factor here, for consistency with later calculations...
-					//weighted_S_pt_pphi_array[isurf][ieta] = S_p_withweight;
-					//weighted_S_p_array[ipt][iphi][isurf][ieta] = S_p_withweight;
 					tempsum += eta_s_symmetry_factor*S_p_withweight;
 					temp_running_sum += eta_s_symmetry_factor*S_p_withweight;
 				}
@@ -958,8 +951,6 @@ sw2.Stop();
 	{
 		spectra[local_pid][ipt][ipphi] = temp_moments_array[ipt][ipphi];
 		abs_spectra[local_pid][ipt][ipphi] = abs_temp_moments_array[ipt][ipphi];
-//*global_out_stream_ptr << setw(15) << setprecision(15) << "CHECK: spectra[1][" << ipt << "][" << ipphi << "] = " << spectra[local_pid][ipt][ipphi] << endl
-//						<< "CHECK: abs_spectra[1][" << ipt << "][" << ipphi << "] = " << abs_spectra[local_pid][ipt][ipphi] << endl;
 	}
 
 	for(int ipt = 0; ipt < n_interp_pT_pts; ++ipt)
@@ -977,7 +968,6 @@ sw2.Stop();
 // this function sets the FT phase factor which depends on all q pts. and all x pts., but no K or p pts.
 void CorrelationFunction::Set_giant_array()
 {
-	int ntrig = 2;
 	int giant_array_size = FO_length * eta_s_npts * qnpts * qnpts * qnpts * qnpts * ntrig;
 	giant_array = new double [giant_array_size];
 
@@ -1009,11 +999,9 @@ void CorrelationFunction::Cal_dN_dypTdpTdphi_with_weights(FO_surf* FOsurf_ptr, i
 {
 CPStopwatch debug_sw, debug_sw2;
 debug_sw.Start();
-	int ntrig = 2;
 	int temp_moms_lin_arr_length = n_interp_pT_pts * n_interp_pphi_pts * qnpts * qnpts * qnpts * qnpts * ntrig;
 	int lin_TAA_length = qnpts * qnpts * qnpts * qnpts * ntrig;
 
-	double * linear_trig_arg_array = new double [lin_TAA_length];
 	double * temp_moms_linear_array = new double [temp_moms_lin_arr_length];
 	for (int i = 0; i < temp_moms_lin_arr_length; ++i)
 		temp_moms_linear_array[i] = 0.0;
@@ -1149,11 +1137,10 @@ debug_sw.Start();
 	{
 		double temp = temp_moms_linear_array[iidx];
 		current_dN_dypTdpTdphi_moments[ipt][iphi][iqt][iqx][iqy][iqz][itrig] = temp;
-		//current_ln_dN_dypTdpTdphi_moments[ipt][iphi][iqt][iqx][iqy][iqz][itrig] = log(abs(temp)+1.e-100);
-		//current_sign_of_dN_dypTdpTdphi_moments[ipt][iphi][iqt][iqx][iqy][iqz][itrig] = sgn(temp);
 		++iidx;
 	}
 
+	// store in HDF5 file
 	int setHDFresonanceSpectra = Set_resonance_in_HDF_array(local_pid, current_dN_dypTdpTdphi_moments);
 	if (setHDFresonanceSpectra < 0)
 	{
@@ -1162,7 +1149,6 @@ debug_sw.Start();
 	}
 
 	delete [] temp_moms_linear_array;
-	delete [] linear_trig_arg_array;
 	delete [] giant_array;
 
 debug_sw.Stop();
@@ -1176,7 +1162,6 @@ void CorrelationFunction::Cal_dN_dypTdpTdphi_with_weights_with_HDF(FO_surf* FOsu
 	CPStopwatch debug_sw, debug_sw2;
 	debug_sw.Start();
 
-	int ntrig = 2;
 	int temp_moms_lin_arr_length = n_interp_pT_pts * n_interp_pphi_pts * qnpts * qnpts * qnpts * qnpts * ntrig;
 	int lin_TAA_length = eta_s_npts * qnpts * qnpts * qnpts * qnpts * ntrig;
 	int FT_loop_length = qnpts * qnpts * qnpts * qnpts * ntrig;
@@ -1205,10 +1190,6 @@ void CorrelationFunction::Cal_dN_dypTdpTdphi_with_weights_with_HDF(FO_surf* FOsu
 
 	int lin_TMLAL_idx = 0, lin_TAA_idx = 0;
 
-	//double small_array[1][lin_TAA_length];
-	//double flattened_small_array[lin_TAA_length];
-	//for (int ii = 0; ii < lin_TAA_length; ++ii)
-	//	small_array[0][ii] = 0.0;
 	double small_array[lin_TAA_length];
 
 	int HDFsuccess = Set_giant_chunked_HDF_array();
@@ -1224,8 +1205,6 @@ void CorrelationFunction::Cal_dN_dypTdpTdphi_with_weights_with_HDF(FO_surf* FOsu
 		double pT = SPinterp_pT[ipt];
 		double * p0_pTslice = SPinterp_p0[ipt];
 		double * pz_pTslice = SPinterp_pz[ipt];
-
-		//int HDFsuccess2 = Reset_HDF();
 
 		for (int iphi = 0; iphi < n_interp_pphi_pts; ++iphi)
 		{
@@ -1264,8 +1243,6 @@ void CorrelationFunction::Cal_dN_dypTdpTdphi_with_weights_with_HDF(FO_surf* FOsu
 					cerr << "Failed to access HDF5 array!  Exiting..." << endl;
 					exit;
 				}
-				//for (int isa = 0; isa < lin_TAA_length; ++isa)
-				//	flattened_small_array[isa] = small_array[0][isa];
 
 				lin_TAA_idx = 0;
 
@@ -1323,9 +1300,7 @@ void CorrelationFunction::Cal_dN_dypTdpTdphi_with_weights_with_HDF(FO_surf* FOsu
 					for (int itrig = 0; itrig < ntrig; ++itrig)
 					{
 						// notice carefully worked index math to speed up calculations...
-						//temp_moms_linear_array[lin_TMLAL_idx] += flattened_small_array[lin_TAA_idx] * S_p_withweight;
 						temp_moms_linear_array[lin_TMLAL_idx] += small_array[lin_TAA_idx] * S_p_withweight;
-						//temp_moms_linear_array[lin_TMLAL_idx] += small_array[0][lin_TAA_idx] * S_p_withweight;
 						++lin_TAA_idx;
 						++lin_TMLAL_idx;
 					}
@@ -1349,11 +1324,10 @@ void CorrelationFunction::Cal_dN_dypTdpTdphi_with_weights_with_HDF(FO_surf* FOsu
 	{
 		double temp = temp_moms_linear_array[iidx];
 		current_dN_dypTdpTdphi_moments[ipt][iphi][iqt][iqx][iqy][iqz][itrig] = temp;
-		//current_ln_dN_dypTdpTdphi_moments[ipt][iphi][iqt][iqx][iqy][iqz][itrig] = log(abs(temp)+1.e-100);
-		//current_sign_of_dN_dypTdpTdphi_moments[ipt][iphi][iqt][iqx][iqy][iqz][itrig] = sgn(temp);
 		++iidx;
 	}
 
+	// store in HDF5 file
 	int setHDFresonanceSpectra = Set_resonance_in_HDF_array(local_pid, current_dN_dypTdpTdphi_moments);
 	if (setHDFresonanceSpectra < 0)
 	{

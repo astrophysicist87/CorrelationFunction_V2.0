@@ -98,15 +98,6 @@ class CorrelationFunction
 		double previous_resonance_mu, previous_resonance_mass, previous_resonance_Gamma, previous_m2_Gamma, previous_m3_Gamma;
 		double previous_resonance_total_br, previous_resonance_direct_br, previous_daughter_mass, previous_daughter_Gamma;
 		double * previous_resonance_decay_masses;
-
-		//*************************************************************
-		//freeze-out surface interpolation arrays (prefix: "FOI_"), etc...
-		int FOI_np0pts, FOI_npTpts, FOI_npphipts, FOI_npzpts, FOI_nmupts; 
-		int FOI_netaspts, FOI_nMpts; 
-		double * FOI_p0, * FOI_pT, * FOI_pphi, * FOI_sin_pphi, * FOI_cos_pphi;
-		double * FOI_pz, * FOI_mu, * FOI_eta_s, * FOI_M;
-		double ****** FOI_source_variances;
-		//*************************************************************
 		
 		//arrays to hold results of resonance phase-space integrations
 		double ******* current_dN_dypTdpTdphi_moments;
@@ -118,7 +109,6 @@ class CorrelationFunction
 
 		// needed these to avoid too many trigonometric evaluations
 		double **** osc0, *** osc1, *** osc2, **** osc3;
-		double ******* trig_arg_array;
 	
 		//needed for resonance calculations
 		//kinematic info
@@ -133,7 +123,6 @@ class CorrelationFunction
 		double m2, m3, Gamma, br, m2Gamma, m3Gamma;
 		double * Pp;
 		double * Pm;
-		double * zvec;
 
 		//SP momentum arrays for interpolation grid
 		double * SPinterp_pT;
@@ -242,10 +231,8 @@ class CorrelationFunction
 		int Set_giant_HDF_array();
 		int Get_small_array_from_giant_HDF_array(int isurf, int ieta, double * small_array);
 		int Set_giant_chunked_HDF_array();
-		//int Get_chunk(int isurf, double small_array[][eta_s_npts * qnpts * qnpts * qnpts * qnpts * 2]);	//RANKV2 version
 		int Get_chunk(int isurf, double * small_array);
 		int Clean_up_HDF_miscellany();
-		int Reset_HDF();
 		int Get_resonance_from_HDF_array(int local_pid, double ******* resonance_array_to_fill);
 		int Set_resonance_in_HDF_array(int local_pid, double ******* resonance_array_to_use);
 		int Initialize_resonance_HDF_array();

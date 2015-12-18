@@ -557,33 +557,6 @@ void CorrelationFunction::Update_sourcefunction(particle_info* particle, int FOa
 	osc1 = new double ** [FOarray_length];					//to hold cos/sin(qx x)
 	osc2 = new double ** [FOarray_length];					//to hold cos/sin(qy y)
 	osc3 = new double *** [FOarray_length];				//to hold cos/sin(+/- qz z)
-	trig_arg_array = new double ****** [eta_s_npts];
-	for (int ieta = 0; ieta < eta_s_npts; ++ieta)
-	{
-		trig_arg_array[ieta] = new double ***** [qnpts];
-		for (int iqt = 0; iqt < qnpts; ++iqt)
-		{
-			trig_arg_array[ieta][iqt] = new double **** [qnpts];
-			for (int iqx = 0; iqx < qnpts; ++iqx)
-			{
-				trig_arg_array[ieta][iqt][iqx] = new double *** [qnpts];
-				for (int iqy = 0; iqy < qnpts; ++iqy)
-				{
-					trig_arg_array[ieta][iqt][iqx][iqy] = new double ** [qnpts];
-					for (int iqz = 0; iqz < qnpts; ++iqz)
-					{
-						trig_arg_array[ieta][iqt][iqx][iqy][iqz] = new double * [2];
-						for (int itrig = 0; itrig < 2; ++itrig)
-						{
-							trig_arg_array[ieta][iqt][iqx][iqy][iqz][itrig] = new double [2];
-							for (int ii = 0; ii < 2; ++ii)
-								trig_arg_array[ieta][iqt][iqx][iqy][iqz][itrig][ii] = 0.0;
-						}
-					}
-				}
-			}
-		}
-	}
 
 	for (int isurf = 0; isurf < FOarray_length; ++isurf)
 	{

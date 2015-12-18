@@ -25,8 +25,9 @@ using namespace std;
     using namespace H5;
 #endif
 
+//HDF information
 const int RANK = 1;
-const int RANKV2 = 2;
+const int ntrig = 2;			// for cos or sin
 
 const double hbarC=0.197327053;		//GeV*fm
 const double hbarC3=0.00768351405;

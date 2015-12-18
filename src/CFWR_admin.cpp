@@ -630,23 +630,6 @@ void CorrelationFunction::Update_sourcefunction(particle_info* particle, int FOa
 		}
 	}
 
-
-	/*weighted_S_p_array = new double *** [n_interp_pT_pts];
-	for (int ipt = 0; ipt < n_interp_pT_pts; ++ipt)
-	{
-		weighted_S_p_array[ipt] = new double ** [n_interp_pphi_pts];
-		for (int ipphi = 0; ipphi < n_interp_pphi_pts; ++ipphi)
-		{
-			weighted_S_p_array[ipt][ipphi] = new double * [FOarray_length];
-			for (int isurf = 0; isurf < FOarray_length; ++isurf)
-			{
-				weighted_S_p_array[ipt][ipphi][isurf] = new double [eta_s_npts];
-				for (int ieta = 0; ieta < eta_s_npts; ++ieta)
-					weighted_S_p_array[ipt][ipphi][isurf][ieta] = 0.0;
-			}
-		}
-	}*/
-
    //particle information
    particle_name = particle->name;
    particle_mass = particle->mass;
@@ -881,6 +864,7 @@ void CorrelationFunction::Delete_decay_channel_info()
 	return;
 }
 
+// sets points in q-space for computing weighted spectra grid
 void CorrelationFunction::Set_q_points()
 {
 	q_pts = new double [qnpts];
@@ -900,6 +884,23 @@ void CorrelationFunction::Set_q_points()
 		qy_pts[iq] = init_q + (double)iq * delta_q;
 		qz_pts[iq] = init_q + (double)iq * delta_q;
 	}
+
+	return;
+}
+
+// returns points in q-space for computing weighted spectra grid corresponding to to given q and K choices
+// weighted spectra grid thus needs to be interpolated at point returned in qgridpts
+void CorrelationFunction::Get_q_points(double qo, double qs, double ql, double KT, double Kphi, double * qgridpts)
+{
+	double mtarget = all_particles[target_particle_id].mass;
+	double xi2 = 0.25*mtarget*mtarget + KT*KT + qo*qo + qs*qs + ql*ql;
+	double ckp = cos(Kphi), skp = sin(Kphi);
+
+	// set qpts at which to interpolate spectra
+	qgridpts[0] = sqrt(xi2 + qo*KT) - sqrt(xi2 - qo*KT);	//set qt component
+	qgridpts[1] = qo*ckp - qs*skp;							//set qx component
+	qgridpts[2] = qo*skp + qs*ckp;							//set qy component
+	qgridpts[3] = ql;										//set qz component, since qz = ql
 
 	return;
 }

@@ -311,6 +311,7 @@ class CorrelationFunction
 		static inline double lin_int(double x_m_x1, double one_by_x2_m_x1, double f1, double f2);
 		void Edndp3(double ptr, double phir, double * results);
 		void Set_q_points();
+		void Get_q_points(double qo, double qs, double ql, double KT, double Kphi, double * qgridpts);
 		void Allocate_resonance_running_sum_vectors();
 		void Delete_resonance_running_sum_vectors();
 		void Zero_resonance_running_sum_vector(double * vec);

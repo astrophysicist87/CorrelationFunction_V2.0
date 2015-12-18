@@ -614,7 +614,6 @@ void CorrelationFunction::Set_dN_dypTdpTdphi_moments(FO_surf* FOsurf_ptr, int lo
 	*global_out_stream_ptr << "Computing spectra..." << endl;
 	CPStopwatch sw;
 	sw.Start();
-	//Cal_dN_dypTdpTdphi_vector(FOsurf_ptr, local_pid);
 	Cal_dN_dypTdpTdphi_heap(FOsurf_ptr, local_pid);
 	sw.Stop();
 	*global_out_stream_ptr << "CP#1: Took " << sw.printTime() << " seconds." << endl;
@@ -652,150 +651,6 @@ void CorrelationFunction::form_trig_sign_z(int isurf, int ieta, int iqt, int iqx
 				- zfactor*cosA2*sinA0*sinA1*sinA3
 				- zfactor*cosA1*sinA0*sinA2*sinA3
 				+ zfactor*cosA0*sinA1*sinA2*sinA3;
-
-	return;
-}
-
-void CorrelationFunction::Cal_dN_dypTdpTdphi_vector(FO_surf* FOsurf_ptr, int local_pid)
-{
-	double ** temp_moments_array = new double * [n_interp_pT_pts];
-	double ** abs_temp_moments_array = new double * [n_interp_pT_pts];
-	for (int ipt = 0; ipt < n_interp_pT_pts; ipt++)
-	{
-		temp_moments_array[ipt] = new double [n_interp_pphi_pts];
-		abs_temp_moments_array[ipt] = new double [n_interp_pphi_pts];
-		for (int ipphi = 0; ipphi < n_interp_pphi_pts; ipphi++)
-		{
-			temp_moments_array[ipt][ipphi] = 0.0;
-			abs_temp_moments_array[ipt][ipphi] = 0.0;
-		}
-	}
-
-	//double cutoff = 0.30;		// only sort through top %30 most important fluid cells
-	double cutoff = 1.00;		// sort through all fluid cells
-
-	// set particle information
-	double sign = all_particles[local_pid].sign;
-	double degen = all_particles[local_pid].gspin;
-	double localmass = all_particles[local_pid].mass;
-	double mu = all_particles[local_pid].mu;
-
-	// set some freeze-out surface information that's constant the whole time
-	double prefactor = 1.0*degen/(8.0*M_PI*M_PI*M_PI)/(hbarC*hbarC*hbarC);
-	double Tdec = (&FOsurf_ptr[0])->Tdec;
-	double Pdec = (&FOsurf_ptr[0])->Pdec;
-	double Edec = (&FOsurf_ptr[0])->Edec;
-	double one_by_Tdec = 1./Tdec;
-	double deltaf_prefactor = 0.;
-	if (use_delta_f)
-		deltaf_prefactor = 1./(2.0*Tdec*Tdec*(Edec+Pdec));
-
-CPStopwatch sw, sw2, sw3;
-
-sw2.Start();
-	for(int ipt = 0; ipt < n_interp_pT_pts; ++ipt)
-	{
-		//if (ipt > 0) continue;
-		double pT = SPinterp_pT[ipt];
-		double * p0_pTslice = SPinterp_p0[ipt];
-		double * pz_pTslice = SPinterp_pz[ipt];
-		*global_out_stream_ptr << "\t\t--> Doing pT = " << pT << "..." << endl;
-
-		for(int iphi = 0; iphi < n_interp_pphi_pts; ++iphi)
-		{
-			double sin_pphi = sin_SPinterp_pphi[iphi];
-			double cos_pphi = cos_SPinterp_pphi[iphi];
-			//*global_out_stream_ptr << "\t\t--> Doing pT = " << pT << ", pphi = " << SPinterp_pphi[iphi] << "..." << endl;
-			double px = pT*cos_pphi;
-			double py = pT*sin_pphi;
-			number_of_FOcells_above_cutoff_array[ipt][iphi] = floor(cutoff * FO_length * eta_s_npts);
-
-			double tempsum = 0.0, tempabssum = 0.0;
-
-			int iFOcell = 0;
-			vector<double> FOcells;
-			FOcells.reserve(FO_length * eta_s_npts);
-
-			for(int isurf = 0; isurf < FO_length; ++isurf)
-			{
-				FO_surf * surf = &FOsurf_ptr[isurf];
-
-				double tau = surf->tau;
-
-				double vx = surf->vx;
-				double vy = surf->vy;
-				double gammaT = surf->gammaT;
-
-				double da0 = surf->da0;
-				double da1 = surf->da1;
-				double da2 = surf->da2;
-
-				double pi00 = surf->pi00;
-				double pi01 = surf->pi01;
-				double pi02 = surf->pi02;
-				double pi11 = surf->pi11;
-				double pi12 = surf->pi12;
-				double pi22 = surf->pi22;
-				double pi33 = surf->pi33;
-
-				for(int ieta = 0; ieta < eta_s_npts; ++ieta)
-				{
-					double p0 = p0_pTslice[ieta];
-					double pz = pz_pTslice[ieta];
-
-					//now get distribution function, emission function, etc.
-					double f0 = 1./(exp( (gammaT*(p0*1. - px*vx - py*vy) - mu)*one_by_Tdec ) + sign);	//thermal equilibrium distributions
-	
-					//viscous corrections
-					double deltaf = 0.;
-					if (use_delta_f)
-						deltaf = deltaf_prefactor * (1. - sign*f0)
-								* (p0*p0*pi00 - 2.0*p0*px*pi01 - 2.0*p0*py*pi02 + px*px*pi11 + 2.0*px*py*pi12 + py*py*pi22 + pz*pz*pi33);
-
-					//p^mu d^3sigma_mu factor: The plus sign is due to the fact that the DA# variables are for the covariant surface integration
-					double S_p = prefactor*(p0*da0 + px*da1 + py*da2)*f0*(1.+deltaf);
-
-					//ignore points where delta f is large or emission function goes negative from pdsigma
-					if ((1. + deltaf < 0.0) || (flagneg == 1 && S_p < tol))
-						S_p = 0.0;
-
-					double S_p_withweight = S_p*tau*eta_s_weight[ieta];
-					tempsum += S_p_withweight;
-					tempabssum += abs(S_p_withweight);
-					FOcells.push_back(abs(S_p_withweight));
-					++iFOcell;			// N.B. - iFOcell == isurf * eta_s_npts + ieta
-				}
-			}
-			sw3.Start();
-			for (int ii = 0; ii < iFOcell; ++ii)
-				FOcells[iFOcell] /= tempabssum;
-			vector<size_t> indices = partial_ordered(FOcells, number_of_FOcells_above_cutoff_array[ipt][iphi], 1);
-			copy(indices.begin(), indices.end(), most_important_FOcells[ipt][iphi]);
-			sw3.Stop();
-			temp_moments_array[ipt][iphi] = tempsum;
-			abs_temp_moments_array[ipt][iphi] = tempabssum;
-		}
-	}
-*global_out_stream_ptr << "\t\t\t*** Took total of " << sw3.printTime() << " seconds on ordering and copying." << endl;
-
-
-sw2.Stop();
-*global_out_stream_ptr << "\t\t\t*** Took " << sw2.printTime() << " seconds for whole function." << endl;
-
-	for(int ipt = 0; ipt < n_interp_pT_pts; ++ipt)
-	for(int ipphi = 0; ipphi < n_interp_pphi_pts; ++ipphi)
-	{
-		spectra[local_pid][ipt][ipphi] = temp_moments_array[ipt][ipphi];
-		abs_spectra[local_pid][ipt][ipphi] = abs_temp_moments_array[ipt][ipphi];
-	}
-
-	for(int ipt = 0; ipt < n_interp_pT_pts; ++ipt)
-	{
-		delete [] temp_moments_array[ipt];
-		delete [] abs_temp_moments_array[ipt];
-	}
-	delete [] temp_moments_array;
-	delete [] abs_temp_moments_array;
 
 	return;
 }
@@ -851,14 +706,14 @@ CPStopwatch sw, sw2, sw3;
 sw2.Start();
 	for(int ipt = 0; ipt < n_interp_pT_pts; ++ipt)
 	{
-		//if (ipt > 0) continue;
+		if (ipt > 0) continue;
 		double pT = SPinterp_pT[ipt];
 		double * p0_pTslice = SPinterp_p0[ipt];
 		double * pz_pTslice = SPinterp_pz[ipt];
 
 		for(int iphi = 0; iphi < n_interp_pphi_pts; ++iphi)
 		{
-			//if (iphi > 0) continue;
+			if (iphi > 0) continue;
 			double sin_pphi = sin_SPinterp_pphi[iphi];
 			double cos_pphi = cos_SPinterp_pphi[iphi];
 			*global_out_stream_ptr << "\t\t--> Doing pT = " << pT << ", pphi = " << SPinterp_pphi[iphi] << "..." << endl;
@@ -1201,7 +1056,7 @@ void CorrelationFunction::Cal_dN_dypTdpTdphi_with_weights_with_HDF(FO_surf* FOsu
 
 	for (int ipt = 0; ipt < n_interp_pT_pts; ++ipt)
 	{
-		//if (ipt > 0) continue;
+		if (ipt > 0) continue;
 		double pT = SPinterp_pT[ipt];
 		double * p0_pTslice = SPinterp_p0[ipt];
 		double * pz_pTslice = SPinterp_pz[ipt];
@@ -1209,7 +1064,7 @@ void CorrelationFunction::Cal_dN_dypTdpTdphi_with_weights_with_HDF(FO_surf* FOsu
 		for (int iphi = 0; iphi < n_interp_pphi_pts; ++iphi)
 		{
 			debug_sw2.Reset();
-			//if (iphi > 0) continue;
+			if (iphi > 0) continue;
 			*global_out_stream_ptr << "Doing pT = " << pT << ", pphi = " << SPinterp_pphi[iphi] << "..." << endl;
 			double sin_pphi = sin_SPinterp_pphi[iphi];
 			double cos_pphi = cos_SPinterp_pphi[iphi];
@@ -1337,7 +1192,6 @@ void CorrelationFunction::Cal_dN_dypTdpTdphi_with_weights_with_HDF(FO_surf* FOsu
 
 	// Clean up
 	delete [] temp_moms_linear_array;
-	delete [] giant_array;
 
 	Clean_up_HDF_miscellany();
 

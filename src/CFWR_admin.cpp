@@ -635,7 +635,7 @@ void CorrelationFunction::Update_sourcefunction(particle_info* particle, int FOa
 	{
 		most_important_FOcells[ipt] = new size_t * [n_interp_pphi_pts];
 		for(int ipphi=0; ipphi<n_interp_pphi_pts; ipphi++)
-			most_important_FOcells[ipt][ipphi] = new size_t [FO_length * eta_s_npts];
+			most_important_FOcells[ipt][ipphi] = new size_t [FO_length];
 	}
 
 

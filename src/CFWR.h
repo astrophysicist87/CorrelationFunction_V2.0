@@ -243,7 +243,6 @@ class CorrelationFunction
 
 		void Set_dN_dypTdpTdphi_moments(FO_surf* FOsurf_ptr, int dc_idx);
 		void Cal_dN_dypTdpTdphi(double** SP_p0, double** SP_px, double** SP_py, double** SP_pz, FO_surf* FOsurf_ptr);
-		void Cal_dN_dypTdpTdphi_vector(FO_surf* FOsurf_ptr, int local_pid);
 		void Cal_dN_dypTdpTdphi_heap(FO_surf* FOsurf_ptr, int local_pid);
 		void Cal_dN_dypTdpTdphi_with_weights(FO_surf* FOsurf_ptr, int local_pid, double cutoff);
 		void Cal_dN_dypTdpTdphi_with_weights_with_HDF(FO_surf* FOsurf_ptr, int local_pid, double cutoff);

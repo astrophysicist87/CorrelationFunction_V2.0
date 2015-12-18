@@ -9,8 +9,6 @@
 ##			clean		remove objectfiles in obj_$TYPE 
 ##			distclean	remove all objectsfiles and binaries
 ##  
-## #$(SRCDIR)/CFWR_HDF.cpp: $(SRCDIR)/CFWR.h
-## #$(SRCDIR)/CFWR_HDF.cpp \
 
 export HDF5_CXX=$(shell /home/plumberg.1/iEBE/EBE-Node/crank/configure_compiler_C++.sh)
 export HDF5_CXXLINKER=$(shell /home/plumberg.1/iEBE/EBE-Node/crank/configure_compiler_C++.sh)
